@@ -10,20 +10,25 @@ export interface EnvironmentConfig {
 // Think of this like a Python dictionary with different configurations
 const environments: Record<string, EnvironmentConfig> = {
   development: {
-    apiUrl: 'http://localhost:7777',
+    apiUrl: process.env.NEXT_PUBLIC_DEV_API_URL || 'http://localhost:7777',
     environment: 'development',
-    debug: true,
+    debug: process.env.NEXT_PUBLIC_DEBUG === 'true' || true,
   },
   production: {
-    apiUrl: 'https://your-app-name.fly.dev', // You'll update this when you deploy to Fly.io
+    apiUrl: process.env.NEXT_PUBLIC_PROD_API_URL || 'https://form-translator-backend.fly.dev', // Your Fly.io backend API
     environment: 'production',
-    debug: false,
+    debug: process.env.NEXT_PUBLIC_DEBUG === 'true' || false,
   },
 };
 
 // This function determines which environment we're in
 // Similar to checking if __name__ == '__main__' in Python
 function getCurrentEnvironment(): string {
+  // Allow manual override of environment (useful for testing)
+  if (process.env.NEXT_PUBLIC_FORCE_ENVIRONMENT) {
+    return process.env.NEXT_PUBLIC_FORCE_ENVIRONMENT;
+  }
+  
   // In Next.js, NODE_ENV is automatically set by the framework
   // 'development' when running npm run dev
   // 'production' when running npm run build/start

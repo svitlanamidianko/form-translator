@@ -11,7 +11,7 @@ export class APIError extends Error {
   constructor(
     message: string,
     public status?: number,
-    public response?: any
+    public response?: unknown
   ) {
     super(message);
     this.name = 'APIError';
@@ -31,7 +31,7 @@ class APIClient {
   private async request<T>(
     endpoint: string,
     method: 'GET' | 'POST' = 'GET',
-    data?: any
+    data?: unknown
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
@@ -80,7 +80,7 @@ class APIClient {
     return this.request<T>(endpoint, 'GET');
   }
 
-  async post<T>(endpoint: string, data: any): Promise<T> {
+  async post<T>(endpoint: string, data: unknown): Promise<T> {
     return this.request<T>(endpoint, 'POST', data);
   }
 }
@@ -128,35 +128,10 @@ export async function getFormTypes(): Promise<FormsResponse> {
  */
 export async function getTranslationHistory(): Promise<HistoryAPIResponse> {
   try {
-    // Your history endpoint is on port 7777, so we'll use the full URL
-    const historyUrl = 'http://localhost:7777/history';
-    
-    if (isDevelopment()) {
-      console.log(`🌐 Fetching history from: ${historyUrl}`);
-    }
+    // Use the same API client to ensure consistent environment handling
+    const response = await apiClient.get<HistoryAPIResponse>('/history');
 
-    const response = await fetch(historyUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new APIError(
-        `History API request failed: ${response.statusText}`,
-        response.status,
-        await response.json().catch(() => null)
-      );
-    }
-
-    const result = await response.json();
-    
-    if (isDevelopment()) {
-      console.log(`✅ History Response (${result.count} items):`, result);
-    }
-
-    return result;
+    return response;
   } catch (error) {
     console.error('Failed to fetch translation history:', error);
     throw error;

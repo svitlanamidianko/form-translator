@@ -30,6 +30,36 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  
+  // Configure redirects for better production deployment
+  async redirects() {
+    return [];
+  },
+  
+  // Configure rewrites if needed (useful for API proxying in development)
+  async rewrites() {
+    // Only apply rewrites in development to proxy to local backend
+    if (process.env.NODE_ENV === 'development') {
+      return [
+        {
+          source: '/api/:path*',
+          destination: 'http://localhost:7777/:path*',
+        },
+      ];
+    }
+    return [];
+  },
+  
+  // Optimize images and other static assets
+  images: {
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+  },
+  
+  // Configure experimental features for better performance
+  experimental: {
+    optimizePackageImports: ['@/components', '@/hooks', '@/services'],
+  },
 };
 
 export default nextConfig;

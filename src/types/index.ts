@@ -23,7 +23,7 @@ export interface FormsResponse {
 export interface APIError {
   message: string;
   status?: number;
-  response?: any;
+  response?: unknown;
 }
 
 // UI Component Props Types
