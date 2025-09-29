@@ -11,6 +11,7 @@ import { UI_CONSTANTS, ERROR_MESSAGES } from '@/constants';
 // Utility function to convert API history items to our internal format
 // This is like having a data transformer function in Python
 function convertAPIHistoryToInternal(apiItem: APIHistoryItem): TranslationHistoryItem {
+
   // Parse the date - your API returns "9/23/2025" format
   const parseDate = (dateString: string): Date => {
     try {
@@ -30,6 +31,7 @@ function convertAPIHistoryToInternal(apiItem: APIHistoryItem): TranslationHistor
     sourceForm: apiItem.source_form,
     targetForm: apiItem.target_form,
     timestamp: parseDate(apiItem.datetime),
+    starCount: apiItem.stars_count || 0, // Use correct field name from your backend (plural)
   };
 }
 

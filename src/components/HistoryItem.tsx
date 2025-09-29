@@ -1,7 +1,9 @@
 // History Item Component - Individual translation history record
 // Similar to TranslationPanel but optimized for read-only historical data
 
+import { useState, useEffect } from 'react';
 import { TranslationHistoryItem } from '@/types';
+import { starService } from '@/services/starService';
 
 interface HistoryItemProps {
   item: TranslationHistoryItem;
@@ -9,6 +11,55 @@ interface HistoryItemProps {
 }
 
 export default function HistoryItem({ item, formOptions }: HistoryItemProps) {
+  // State to track if this item is starred (personal state)
+  const [isStarred, setIsStarred] = useState(false);
+  // State to track global star count (from all users)
+  const [globalStarCount, setGlobalStarCount] = useState(item.starCount || 0);
+  // State to track if we're currently updating the star
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Load star status and global count when component mounts
+  useEffect(() => {
+    // Set personal star status immediately (from browser storage)
+    setIsStarred(starService.isStarred(item.id));
+    
+    // Only load global star count if we don't already have it from history API
+    if (item.starCount === undefined) {
+      const loadGlobalCount = async () => {
+        try {
+          const count = await starService.getGlobalStarCount(item.id);
+          setGlobalStarCount(count);
+        } catch (error) {
+          console.error('Failed to load global star count:', error);
+          // Fallback to local count
+          setGlobalStarCount(starService.getLocalStarCount(item.id));
+        }
+      };
+      
+      loadGlobalCount();
+    }
+  }, [item.id]);
+
+  // Handle star click - toggle star status (HYBRID VERSION)
+  const handleStarClick = async () => {
+    if (isUpdating) return; // Prevent double-clicks
+    
+    setIsUpdating(true);
+    try {
+      const result = await starService.toggleStar(item.id);
+      setIsStarred(result.isStarred);
+      setGlobalStarCount(result.globalCount);
+      
+      // Star updated successfully
+    } catch (error) {
+      console.error('Failed to update star:', error);
+      // The service already handles fallback, so we just need to refresh state
+      setIsStarred(starService.isStarred(item.id));
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   // Format the timestamp - similar to Python's datetime.strftime()
   const formatTimestamp = (date: Date) => {
     const now = new Date();
@@ -21,55 +72,95 @@ export default function HistoryItem({ item, formOptions }: HistoryItemProps) {
     } else if (hours > 0) {
       return `${hours} hour${hours > 1 ? 's' : ''} ago`;
     } else {
-      return 'Just now';
+      return 'just now';
     }
   };
 
-  // Get form display names, fallback to the form key if not found
+  // Get form display names (just the name, not description), fallback to the form key if not found
   const getFormName = (formKey: string) => {
-    return formOptions[formKey] || formKey;
+    const fullFormName = formOptions[formKey] || formKey;
+    // Extract just the form name (everything before " - ")
+    return fullFormName.split(' - ')[0];
   };
 
   return (
-    <div className="mb-12 lg:mb-20 last:mb-0">
-      {/* Header with timestamp */}
-      <div className="mb-3 flex justify-end">
-        <span className="text-xs text-gray-500 font-medium">
-          {formatTimestamp(item.timestamp)}
-        </span>
+    <div className="mb-24 last:mb-0">
+      {/* Single gray container for both source and target */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+        
+        {/* Source and Target side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16">
+          
+          {/* Source (Input) Section - Left Side */}
+          <div className="space-y-3">
+            <div className="flex items-center">
+              <span className="text-sm font-medium text-gray-600">
+                {getFormName(item.sourceForm)}
+              </span>
+            </div>
+            <div className="text-xl text-gray-900 leading-relaxed font-inter">
+              {item.sourceText || <span className="text-gray-400">No source text</span>}
+            </div>
+          </div>
+
+          {/* Target (Output) Section - Right Side */}
+          <div className="space-y-3">
+            <div className="flex items-center">
+              <span className="text-sm font-medium text-gray-600">
+                {getFormName(item.targetForm)}
+              </span>
+            </div>
+            <div className="text-xl text-gray-900 leading-relaxed font-inter">
+              {item.targetText || <span className="text-gray-400">No translation</span>}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Translation content - stacked on mobile, side-by-side on desktop */}
-      <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3 lg:gap-4">
-        
-        {/* Source (Input) Section */}
-        <div className="space-y-2">
-          <div className="flex items-center">
-            <span className="text-sm font-medium text-gray-700">
-              {getFormName(item.sourceForm)}
-            </span>
-          </div>
-          <div className="bg-gray-50 border border-gray-200 rounded-md p-3 min-h-[80px]">
-            <p className="text-base text-gray-900 leading-relaxed">
-              {item.sourceText || <span className="text-gray-400 italic">No source text</span>}
-            </p>
-          </div>
+      {/* Star rating and timestamp */}
+      <div className="flex items-center justify-between mt-4 px-2">
+        <div className="flex items-center space-x-1">
+          {/* Clickable star - filled if starred, outline if not */}
+          <button 
+            onClick={handleStarClick}
+            disabled={isUpdating}
+            className={`p-1 rounded-full transition-colors ${
+              isUpdating 
+                ? 'cursor-not-allowed opacity-50' 
+                : 'hover:bg-gray-100 cursor-pointer'
+            }`}
+            title={
+              isUpdating 
+                ? "Updating..." 
+                : isStarred 
+                  ? "Remove from favorites" 
+                  : "Add to favorites"
+            }
+          >
+            {isUpdating ? (
+              // Loading spinner
+              <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-300 border-t-yellow-500"></div>
+            ) : isStarred ? (
+              // Filled star (starred by current user)
+              <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+            ) : (
+              // Outline star (not starred by current user)
+              <svg className="w-4 h-4 text-gray-400 hover:text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+            )}
+          </button>
+          <span className="text-sm text-gray-500 font-medium">
+            {globalStarCount}
+          </span>
         </div>
-
-        {/* Target (Output) Section */}
-        <div className="space-y-2">
-          <div className="flex items-center">
-            <span className="text-sm font-medium text-gray-700">
-              {getFormName(item.targetForm)}
-            </span>
-          </div>
-          <div className="bg-gray-50 border border-gray-200 rounded-md p-3 min-h-[80px]">
-            <p className="text-base text-gray-900 leading-relaxed">
-              {item.targetText || <span className="text-gray-400 italic">No translation</span>}
-            </p>
-          </div>
-        </div>
+        <span className="text-sm text-gray-500 font-medium">
+          {formatTimestamp(item.timestamp)}
+        </span>
       </div>
     </div>
   );
 }
+

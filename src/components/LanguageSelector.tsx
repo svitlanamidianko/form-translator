@@ -20,13 +20,10 @@ export default function LanguageSelector({
   className = "",
   mobileOnly = false,
 }: LanguageSelectorProps) {
-  // Function to extract just the form name (before the dash) for mobile
+  // Function to extract just the form name (before the dash)
   const getDisplayLabel = (label: string) => {
-    if (mobileOnly) {
-      // Extract just the form name (everything before " - ")
-      return label.split(' - ')[0];
-    }
-    return label;
+    // Always extract just the form name (everything before " - ")
+    return label.split(' - ')[0];
   };
 
   // Get the current selected form name for display
@@ -78,7 +75,7 @@ export default function LanguageSelector({
           >
             {Object.entries(options).map(([key, label]) => (
               <option key={key} value={key}>
-                {label}
+                {getDisplayLabel(label)}
               </option>
             ))}
           </select>

@@ -1,6 +1,6 @@
 'use client';
 
-
+import { useState } from 'react';
 // Clean, focused imports - only what we need
 import { useTranslation } from '@/hooks/useTranslation';
 import EnvironmentIndicator from '@/components/EnvironmentIndicator';
@@ -36,6 +36,70 @@ export default function Home() {
     refreshHistory,
   } = useTranslation();
 
+  // State for mobile copy feedback - like a boolean flag in Python
+  const [showMobileCopiedMessage, setShowMobileCopiedMessage] = useState(false);
+  const [showMobileInputCopiedMessage, setShowMobileInputCopiedMessage] = useState(false);
+
+  // Copy functionality for mobile layout - like a utility function in Python
+  const handleCopyOutput = async () => {
+    if (!outputText || !outputText.trim()) return;
+    
+    try {
+      await navigator.clipboard.writeText(outputText);
+      // Show success message
+      setShowMobileCopiedMessage(true);
+      setTimeout(() => setShowMobileCopiedMessage(false), 2000); // Hide after 2 seconds
+      console.log('Text copied to clipboard');
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+      // Fallback for older browsers
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = outputText;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        // Show success message for fallback too
+        setShowMobileCopiedMessage(true);
+        setTimeout(() => setShowMobileCopiedMessage(false), 2000);
+        console.log('Text copied to clipboard (fallback)');
+      } catch (fallbackErr) {
+        console.error('Fallback copy also failed:', fallbackErr);
+      }
+    }
+  };
+
+  // Copy functionality for mobile input - like a utility function in Python
+  const handleCopyInput = async () => {
+    if (!inputText || !inputText.trim()) return;
+    
+    try {
+      await navigator.clipboard.writeText(inputText);
+      // Show success message
+      setShowMobileInputCopiedMessage(true);
+      setTimeout(() => setShowMobileInputCopiedMessage(false), 2000); // Hide after 2 seconds
+      console.log('Input text copied to clipboard');
+    } catch (err) {
+      console.error('Failed to copy input text:', err);
+      // Fallback for older browsers
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = inputText;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        // Show success message for fallback too
+        setShowMobileInputCopiedMessage(true);
+        setTimeout(() => setShowMobileInputCopiedMessage(false), 2000);
+        console.log('Input text copied to clipboard (fallback)');
+      } catch (fallbackErr) {
+        console.error('Fallback copy also failed:', fallbackErr);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       {/* Environment Indicator - only shows in development */}
@@ -53,7 +117,7 @@ export default function Home() {
         {/* Mobile Layout - Google Translate Style */}
         <div className="lg:hidden bg-white">
           {/* Language Selectors Row - Same line like Google Translate */}
-          <div className="px-4 py-4 border-b border-gray-200">
+          <div className="px-4 py-4">
             <div className="flex items-center justify-between mb-4">
               <LanguageSelector
                 value={sourceForm}
@@ -89,8 +153,9 @@ export default function Home() {
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Enter text to translate..."
-                className="w-full min-h-[120px] resize-none border-none outline-none text-gray-900 text-lg leading-relaxed bg-transparent placeholder-gray-400"
+                placeholder="enter text to translate..."
+                className="w-full min-h-[120px] resize-none border-none outline-none leading-relaxed bg-transparent placeholder-gray-400 font-inter text-xl"
+                style={{ color: '#202124' }}
                 maxLength={UI_CONSTANTS.MAX_TEXT_LENGTH}
               />
             </div>
@@ -98,11 +163,25 @@ export default function Home() {
             {/* Bottom Row */}
             <div className="flex items-center justify-between mt-2">
               <div className="flex items-center space-x-3">
-                <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                  <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={handleCopyInput}
+                    className="py-2 pr-2 pl-0 rounded-full hover:bg-gray-100 transition-colors"
+                    disabled={!inputText || !inputText.trim()}
+                    title="Copy to clipboard"
+                  >
+                    <svg className={`w-6 h-6 ${!inputText || !inputText.trim() ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                  
+                  {/* Copy feedback message for mobile input */}
+                  {showMobileInputCopiedMessage && (
+                    <span className="text-sm text-gray-600 font-medium transition-opacity duration-300">
+                      copied to clipboard
+                    </span>
+                  )}
+                </div>
               </div>
               <span className="text-sm text-gray-400">{inputText.length} / {UI_CONSTANTS.MAX_TEXT_LENGTH}</span>
             </div>
@@ -110,7 +189,7 @@ export default function Home() {
 
 
           {/* Output Section */}
-          <div className="px-4 py-4 bg-white border-t border-gray-200">
+          <div className="px-4 py-4 bg-white">
             
             {/* Output Text Area */}
             <div className="min-h-[120px]">
@@ -136,8 +215,8 @@ export default function Home() {
                   </div>
                 </div>
               ) : (
-                <div className="text-gray-900 text-lg leading-relaxed min-h-[120px] flex items-start">
-                  {outputText || <span className="text-gray-400">Translation</span>}
+                <div className="leading-relaxed min-h-[120px] flex items-start font-inter text-xl" style={{ color: '#202124' }}>
+                  {outputText || <span className="text-gray-400">translation</span>}
                 </div>
               )}
             </div>
@@ -145,11 +224,25 @@ export default function Home() {
             {/* Bottom Row */}
             <div className="flex items-center justify-between mt-2">
               <div className="flex items-center space-x-3">
-                <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                  <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={handleCopyOutput}
+                    className="py-2 pr-2 pl-0 rounded-full hover:bg-gray-100 transition-colors"
+                    disabled={!outputText || !outputText.trim()}
+                    title="Copy to clipboard"
+                  >
+                    <svg className={`w-6 h-6 ${!outputText || !outputText.trim() ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                  
+                  {/* Copy feedback message for mobile */}
+                  {showMobileCopiedMessage && (
+                    <span className="text-sm text-gray-600 font-medium transition-opacity duration-300">
+                      copied to clipboard
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -166,7 +259,7 @@ export default function Home() {
             onFormChange={setSourceForm}
             formOptions={formTypes}
             isLoadingForms={isLoadingForms}
-            placeholder="Enter text to translate..."
+            placeholder="enter text to translate..."
             maxLength={UI_CONSTANTS.MAX_TEXT_LENGTH}
           />
 

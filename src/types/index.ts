@@ -46,6 +46,7 @@ export interface TranslationHistoryItem {
   sourceForm: string;
   targetForm: string;
   timestamp: Date;
+  starCount?: number; // Optional star count from API
 }
 
 export interface HistoryComponentProps {
@@ -58,13 +59,14 @@ export interface HistoryComponentProps {
 export interface APIHistoryItem {
   datetime: string;
   id: string;
-  is_starred: string;
+  is_starred?: string;
   source_form: string;
   source_form_id: string;
   source_text: string;
   target_form: string;
   target_form_id: string;
   target_text: string;
+  stars_count?: number; // Match your backend's field name (plural)
 }
 
 export interface HistoryAPIResponse {
@@ -73,4 +75,24 @@ export interface HistoryAPIResponse {
   sorted_by: string;
   source: string;
   timestamp: string;
+}
+
+// Star API Types - for server communication
+export interface StarRequest {
+  translationId: string;
+  action: 'star' | 'unstar'; // Tell server to add or remove a star
+}
+
+export interface StarResponse {
+  translationId: string;
+  totalStars: number; // Global count from all users
+  success?: boolean; // Optional - assume success if not false
+  message?: string;
+}
+
+// Response type for GET /star/{id} endpoint
+export interface StarCountResponse {
+  translationId: string;
+  totalStars: number;
+  timestamp: string; // Your backend includes timestamp
 }

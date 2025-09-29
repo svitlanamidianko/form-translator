@@ -4,7 +4,7 @@
 import { API_URL, isDevelopment } from '@/config/environment';
 
 // Import types from centralized location
-import type { TranslationRequest, TranslationResponse, FormsResponse, HistoryAPIResponse } from '@/types';
+import type { TranslationRequest, TranslationResponse, FormsResponse, HistoryAPIResponse, StarRequest, StarResponse, StarCountResponse } from '@/types';
 
 // API Error class - similar to creating custom exceptions in Python
 export class APIError extends Error {
@@ -134,6 +134,36 @@ export async function getTranslationHistory(): Promise<HistoryAPIResponse> {
     return response;
   } catch (error) {
     console.error('Failed to fetch translation history:', error);
+    throw error;
+  }
+}
+
+/**
+ * Star or unstar a translation (updates global counter on server)
+ * This is like having a toggle_star(translation_id, action) function in Python
+ */
+export async function updateTranslationStar(request: StarRequest): Promise<StarResponse> {
+  try {
+    // This will call POST /star on your backend
+    const response = await apiClient.post<StarResponse>('/star', request);
+    return response;
+  } catch (error) {
+    console.error('Failed to update star:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get star count for a specific translation
+ * This fetches the global star count from server
+ */
+export async function getTranslationStarCount(translationId: string): Promise<StarCountResponse> {
+  try {
+    // This will call GET /star/{translationId} on your backend
+    const response = await apiClient.get<StarCountResponse>(`/star/${translationId}`);
+    return response;
+  } catch (error) {
+    console.error('Failed to get star count:', error);
     throw error;
   }
 }
