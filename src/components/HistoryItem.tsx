@@ -40,20 +40,31 @@ export default function HistoryItem({ item, formOptions }: HistoryItemProps) {
     }
   }, [item.id]);
 
-  // Handle star click - toggle star status (HYBRID VERSION)
+  // Handle star click - toggle star status with OPTIMISTIC UPDATES
   const handleStarClick = async () => {
     if (isUpdating) return; // Prevent double-clicks
     
-    setIsUpdating(true);
+    // OPTIMISTIC UPDATE: Immediately flip the star state for instant feedback
+    const newStarState = !isStarred;
+    const optimisticCount = newStarState ? globalStarCount + 1 : globalStarCount - 1;
+    
+    setIsStarred(newStarState);
+    setGlobalStarCount(optimisticCount);
+    setIsUpdating(true); // Still track updating for error handling, but don't show spinner
+    
     try {
       const result = await starService.toggleStar(item.id);
+      // Update with actual server response (in case our optimistic guess was wrong)
       setIsStarred(result.isStarred);
       setGlobalStarCount(result.globalCount);
       
       // Star updated successfully
     } catch (error) {
       console.error('Failed to update star:', error);
-      // The service already handles fallback, so we just need to refresh state
+      // ROLLBACK: Revert to previous state if API call failed
+      setIsStarred(!newStarState);
+      setGlobalStarCount(globalStarCount);
+      // Also sync with local storage state
       setIsStarred(starService.isStarred(item.id));
     } finally {
       setIsUpdating(false);
@@ -123,24 +134,10 @@ export default function HistoryItem({ item, formOptions }: HistoryItemProps) {
           {/* Clickable star - filled if starred, outline if not */}
           <button 
             onClick={handleStarClick}
-            disabled={isUpdating}
-            className={`p-1 rounded-full transition-colors ${
-              isUpdating 
-                ? 'cursor-not-allowed opacity-50' 
-                : 'hover:bg-gray-100 cursor-pointer'
-            }`}
-            title={
-              isUpdating 
-                ? "Updating..." 
-                : isStarred 
-                  ? "Remove from favorites" 
-                  : "Add to favorites"
-            }
+            className="p-1 rounded-full transition-colors hover:bg-gray-100 cursor-pointer"
+            title={isStarred ? "Remove from favorites" : "Add to favorites"}
           >
-            {isUpdating ? (
-              // Loading spinner
-              <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-300 border-t-yellow-500"></div>
-            ) : isStarred ? (
+            {isStarred ? (
               // Filled star (starred by current user)
               <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
