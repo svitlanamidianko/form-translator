@@ -7,12 +7,6 @@ export const UI_CONSTANTS = {
   ANIMATION_DURATION: 200, // milliseconds
 } as const;
 
-export const API_ENDPOINTS = {
-  TRANSLATE: '/translate',
-  FORMS: '/forms',
-  HEALTH: '/health',
-} as const;
-
 export const ERROR_MESSAGES = {
   NETWORK_ERROR: 'Network error occurred. Please check your connection.',
   TRANSLATION_FAILED: 'Translation failed. Please try again.',
@@ -20,7 +14,9 @@ export const ERROR_MESSAGES = {
   GENERIC_ERROR: 'An unexpected error occurred. Please try again.',
 } as const;
 
-export const SUCCESS_MESSAGES = {
-  TRANSLATION_COMPLETE: 'Translation completed successfully',
-  FORMS_LOADED: 'Forms loaded successfully',
+// Language display constants for Google Translate-style selector
+export const LANGUAGE_DISPLAY = {
+  DETECT_KEY: 'detect',
+  DETECT_LABEL: 'detect form',
+  MAX_VISIBLE_LANGUAGES: 5, // Show as many as can fit in one line with dropdown
 } as const;

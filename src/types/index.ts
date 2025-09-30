@@ -96,3 +96,15 @@ export interface StarCountResponse {
   totalStars: number;
   timestamp: string; // Your backend includes timestamp
 }
+
+// Interest Tracking Types - for tracking user interest in future features
+export interface InterestTrackingRequest {
+  contentType: 'images' | 'websites';
+  timestamp: string;
+}
+
+export interface InterestTrackingResponse {
+  success: boolean;
+  message?: string;
+  totalInterest?: number; // Optional: total count of interest for this content type
+}

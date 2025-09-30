@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { translateText, APIError, getFormTypes, getTranslationHistory } from '@/services/api';
 import type { TranslationRequest, TranslationHistoryItem, APIHistoryItem } from '@/types';
 import { isDevelopment } from '@/config/environment';
-import { UI_CONSTANTS, ERROR_MESSAGES } from '@/constants';
+import { UI_CONSTANTS, ERROR_MESSAGES, LANGUAGE_DISPLAY } from '@/constants';
 
 // Utility function to convert API history items to our internal format
 // This is like having a data transformer function in Python
@@ -104,10 +104,8 @@ interface UseTranslationReturn {
   setTargetForm: (form: string) => void;
   setInputText: (text: string) => void;
   setError: (error: string | null) => void;
-  handleSwapForms: () => void;
   handleTranslate: () => Promise<void>;
   toggleHistory: () => void;
-  clearHistory: () => void;
   refreshHistory: () => void;
 }
 
@@ -141,11 +139,11 @@ export function useTranslation(): UseTranslationReturn {
         const response = await getFormTypes();
         setFormTypes(response.forms);
         
-        // Set default values to first two forms if available
+        // Set default values - "detect" for source, first form for target
         const formKeys = Object.keys(response.forms);
-        if (formKeys.length >= 2) {
-          setSourceForm(formKeys[0]);
-          setTargetForm(formKeys[1]);
+        if (formKeys.length >= 1) {
+          setSourceForm(LANGUAGE_DISPLAY.DETECT_KEY); // Default to "detect" for source
+          setTargetForm(formKeys[0]); // First available form for target
         }
         
         if (isDevelopment()) {
@@ -169,8 +167,8 @@ export function useTranslation(): UseTranslationReturn {
       clearTimeout(debounceTimeoutRef.current);
     }
 
-    // Don't translate if conditions aren't met
-    if (!inputText.trim() || isLoadingForms || !sourceForm || !targetForm) {
+    // Don't translate if conditions aren't met or if "detect" is selected
+    if (!inputText.trim() || isLoadingForms || !sourceForm || !targetForm || sourceForm === LANGUAGE_DISPLAY.DETECT_KEY) {
       setOutputText('');
       return;
     }
@@ -228,30 +226,21 @@ export function useTranslation(): UseTranslationReturn {
     }
   };
 
-  const clearHistory = () => {
-    setTranslationHistory([]);
-  };
-
   const refreshHistory = () => {
     fetchTranslationHistory();
   };
 
   // Note: addToHistory function removed since we now fetch history from API
 
-  // Swap source and target forms - like a method in Python class
-  const handleSwapForms = () => {
-    const tempForm = sourceForm;
-    setSourceForm(targetForm);
-    setTargetForm(tempForm);
-    
-    const tempText = inputText;
-    setInputText(outputText);
-    setOutputText(tempText);
-  };
-
   // Handle translation - main business logic function
   const handleTranslate = async () => {
     if (!inputText.trim()) return;
+    
+    // Don't translate if "detect" is selected
+    if (sourceForm === LANGUAGE_DISPLAY.DETECT_KEY) {
+      setOutputText('');
+      return;
+    }
     
     setIsTranslating(true);
     setError(null);
@@ -319,10 +308,8 @@ export function useTranslation(): UseTranslationReturn {
     setTargetForm,
     setInputText,
     setError,
-    handleSwapForms,
     handleTranslate,
     toggleHistory,
-    clearHistory,
     refreshHistory,
   };
 }

@@ -1,8 +1,9 @@
 // Translation Panel Component - Reusable panel for input and output
 // This follows the DRY principle - Don't Repeat Yourself
 
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import LanguageSelector from './LanguageSelector';
+import { useClipboard } from '@/hooks/useClipboard';
 import { UI_CONSTANTS } from '@/constants';
 
 interface TranslationPanelProps {
@@ -35,10 +36,9 @@ export default function TranslationPanel({
   maxLength = UI_CONSTANTS.MAX_TEXT_LENGTH,
 }: TranslationPanelProps) {
   const isInput = type === 'input';
-  const isOutput = type === 'output';
 
-  // State for copy feedback - like a boolean flag in Python
-  const [showCopiedMessage, setShowCopiedMessage] = useState(false);
+  // Use our reusable clipboard hook
+  const { copyToClipboard, showCopiedMessage } = useClipboard();
   
   // Ref for textarea auto-resize
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -59,40 +59,17 @@ export default function TranslationPanel({
     }
   }, [value, isInput]);
 
-  // Copy functionality - like a utility function in Python
-  const handleCopy = async () => {
-    if (!value || !value.trim()) return;
-    
-    try {
-      await navigator.clipboard.writeText(value);
-      // Show success message
-      setShowCopiedMessage(true);
-      setTimeout(() => setShowCopiedMessage(false), 2000); // Hide after 2 seconds
-      console.log('Text copied to clipboard');
-    } catch (err) {
-      console.error('Failed to copy text:', err);
-      // Fallback for older browsers
-      try {
-        const textArea = document.createElement('textarea');
-        textArea.value = value;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        // Show success message for fallback too
-        setShowCopiedMessage(true);
-        setTimeout(() => setShowCopiedMessage(false), 2000);
-        console.log('Text copied to clipboard (fallback)');
-      } catch (fallbackErr) {
-        console.error('Fallback copy also failed:', fallbackErr);
-      }
+  // Copy functionality using our reusable hook
+  const handleCopy = () => {
+    if (value && value.trim()) {
+      copyToClipboard(value);
     }
   };
 
   // Google Translate style - no borders on mobile - identical for both panels
-  const panelClassName = "lg:border lg:border-gray-200 lg:rounded-lg overflow-hidden bg-white";
+  const panelClassName = "lg:border lg:border-gray-200 lg:rounded-lg overflow-hidden bg-white lg:flex lg:flex-col";
   const headerClassName = "px-4 py-3 bg-white lg:bg-gray-50 lg:border-b lg:border-gray-100";
-  const contentClassName = "px-4 py-0 lg:p-4";
+  const contentClassName = "px-4 py-0 lg:p-4 lg:flex-1 lg:flex lg:flex-col";
 
   const renderContent = () => {
     if (isInput) {
@@ -118,7 +95,7 @@ export default function TranslationPanel({
         {isTranslating ? (
           <div className="flex items-center space-x-2">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-            <span className="text-gray-500">Translating...</span>
+            <span className="text-gray-500">translating...</span>
           </div>
         ) : error ? (
           <div className="flex items-start space-x-2">
@@ -157,15 +134,18 @@ export default function TranslationPanel({
           options={formOptions}
           isLoading={isLoadingForms}
           disabled={isLoadingForms}
+          isSourceSelector={type === 'input'}
         />
       </div>
 
       {/* Content area */}
       <div className={contentClassName}>
-        {renderContent()}
+        <div className="lg:flex-1">
+          {renderContent()}
+        </div>
         
-        {/* Mobile: Minimal footer, Desktop: Full footer */}
-        <div className="flex items-center justify-between pt-3 lg:mt-4 lg:pt-2">
+        {/* Footer - identical positioning for both panels */}
+        <div className="flex items-center justify-between pt-3 lg:mt-4 lg:pt-2 lg:mt-auto">
           <div className="flex items-center space-x-3">
             
             {/* Copy button for both input and output */}

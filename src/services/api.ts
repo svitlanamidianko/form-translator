@@ -4,7 +4,7 @@
 import { API_URL, isDevelopment } from '@/config/environment';
 
 // Import types from centralized location
-import type { TranslationRequest, TranslationResponse, FormsResponse, HistoryAPIResponse, StarRequest, StarResponse, StarCountResponse } from '@/types';
+import type { TranslationRequest, TranslationResponse, FormsResponse, HistoryAPIResponse, StarRequest, StarResponse, StarCountResponse, InterestTrackingResponse } from '@/types';
 
 // API Error class - similar to creating custom exceptions in Python
 export class APIError extends Error {
@@ -169,18 +169,23 @@ export async function getTranslationStarCount(translationId: string): Promise<St
 }
 
 /**
- * Health check endpoint to verify backend connectivity
- * Like having a ping endpoint in your Python API
+ * Track user interest in content types (images, websites)
+ * This helps you understand what features users want most
  */
-export async function healthCheck(): Promise<{ status: string; message: string }> {
+export async function trackContentTypeInterest(contentType: 'images' | 'websites'): Promise<InterestTrackingResponse> {
   try {
-    const response = await apiClient.get<{ status: string; message: string }>('/health');
+    // This will call POST /interest on your backend
+    const response = await apiClient.post<InterestTrackingResponse>('/interest', {
+      contentType,
+      timestamp: new Date().toISOString(),
+    });
     return response;
   } catch (error) {
-    console.error('Health check failed:', error);
+    console.error(`Failed to track interest in ${contentType}:`, error);
     throw error;
   }
 }
+
 
 // Export the API client for advanced usage
 export { apiClient };

@@ -2,7 +2,6 @@
 // This is like having a database class in Python that handles both local cache and server sync
 
 import { updateTranslationStar, getTranslationStarCount } from './api';
-import type { StarRequest } from '@/types';
 
 /**
  * Service for managing starred translations with hybrid storage:

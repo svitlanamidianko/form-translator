@@ -1,11 +1,13 @@
-// Content Tabs Component - Handles the different content type tabs
-// Like having a separate tabs.py module in Python
+// Content Tabs Component - Interactive tabs with interest tracking
+// Text tab works normally, Images/Websites track user interest via API
+
+import { useState } from 'react';
+import { trackContentTypeInterest } from '@/services/api';
 
 interface Tab {
   id: string;
   label: string;
   icon: React.ReactNode;
-  active?: boolean;
 }
 
 interface ContentTabsProps {
@@ -14,6 +16,8 @@ interface ContentTabsProps {
 }
 
 export default function ContentTabs({ activeTab = 'text', onTabChange }: ContentTabsProps) {
+  const [feedbackMessage, setFeedbackMessage] = useState<string>('');
+  
   const tabs: Tab[] = [
     {
       id: 'text',
@@ -44,16 +48,37 @@ export default function ContentTabs({ activeTab = 'text', onTabChange }: Content
     },
   ];
 
-  const handleTabClick = (tabId: string) => {
-    if (onTabChange) {
-      onTabChange(tabId);
+  const handleTabClick = async (tabId: string) => {
+    // For text tab, handle normally
+    if (tabId === 'text') {
+      if (onTabChange) {
+        onTabChange(tabId);
+      }
+      return;
+    }
+
+    // For images and websites, track interest
+    if (tabId === 'images' || tabId === 'websites') {
+      try {
+        await trackContentTypeInterest(tabId);
+        console.log(`📊 Tracked interest in ${tabId}`);
+        
+        // Show user feedback
+        setFeedbackMessage(`thanks for your curiosity in ${tabId};) maybe one day🌱`);
+        setTimeout(() => setFeedbackMessage(''), 3000);
+        
+      } catch (error) {
+        console.error(`Failed to track interest in ${tabId}:`, error);
+        setFeedbackMessage(`thanks for your curiosity in ${tabId};) maybe one day🌱`);
+        setTimeout(() => setFeedbackMessage(''), 3000);
+      }
     }
   };
 
   return (
     <div className="bg-white py-4">
       <div className="max-w-6xl mx-auto px-6">
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -72,6 +97,13 @@ export default function ContentTabs({ activeTab = 'text', onTabChange }: Content
               <span>{tab.label}</span>
             </button>
           ))}
+          
+          {/* Feedback message */}
+          {feedbackMessage && (
+            <span className="ml-4 text-sm text-gray-500">
+              {feedbackMessage}
+            </span>
+          )}
         </div>
       </div>
     </div>
