@@ -2,7 +2,7 @@
 // This is like having a types.py file in Python with all your data models
 
 export interface TranslationRequest {
-  sourceText: string;
+  inputText: string;  // Changed from sourceText to match backend expectation
   sourceForm: string;
   targetForm: string;
 }
@@ -14,10 +14,18 @@ export interface TranslationResponse {
   confidence?: number;
 }
 
+// New form structure from your updated API
+export interface FormData {
+  category: string | null;
+  description: string;
+}
+
 export interface FormsResponse {
   count: number;
-  forms: Record<string, string>;
+  forms: Record<string, FormData>;
   timestamp: string;
+  note?: string;
+  source?: string;
 }
 
 export interface APIError {
@@ -38,10 +46,16 @@ export interface SelectOption {
   value: string;
 }
 
+// Custom form types for user-defined forms
+export interface CustomFormState {
+  isCustom: boolean;
+  customText: string;
+}
+
 // Translation History Types
 export interface TranslationHistoryItem {
   id: string;
-  sourceText: string;
+  inputText: string;  // Changed from sourceText for consistency
   targetText: string;
   sourceForm: string;
   targetForm: string;

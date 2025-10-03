@@ -2,8 +2,9 @@
 // Extracted from page.tsx for better separation of concerns
 
 import { useClipboard } from '@/hooks/useClipboard';
-import LanguageSelector from './LanguageSelector';
+import DropdownSelector from './DropdownSelector';
 import { UI_CONSTANTS } from '@/constants';
+import type { CustomFormState } from '@/types';
 
 interface MobileTranslationLayoutProps {
   // Source/Input props
@@ -18,8 +19,14 @@ interface MobileTranslationLayoutProps {
   outputText: string;
   
   // Form options
-  formTypes: Record<string, string>;
+  formOptions: Record<string, string>;
   isLoadingForms: boolean;
+  
+  // Custom form props
+  sourceCustomForm: CustomFormState;
+  setSourceCustomForm: (customForm: CustomFormState) => void;
+  targetCustomForm: CustomFormState;
+  setTargetCustomForm: (customForm: CustomFormState) => void;
   
   // Translation state
   isTranslating: boolean;
@@ -35,8 +42,12 @@ export default function MobileTranslationLayout({
   targetForm,
   setTargetForm,
   outputText,
-  formTypes,
+  formOptions,
   isLoadingForms,
+  sourceCustomForm,
+  setSourceCustomForm,
+  targetCustomForm,
+  setTargetCustomForm,
   isTranslating,
   error,
   setError,
@@ -62,13 +73,16 @@ export default function MobileTranslationLayout({
       {/* Source Language Selector and Input Section */}
       <div className="px-4 py-4">
         <div className="mb-4">
-          <LanguageSelector
+          <DropdownSelector
             value={sourceForm}
             onChange={setSourceForm}
-            options={formTypes}
+            options={formOptions}
             isLoading={isLoadingForms}
             disabled={isLoadingForms}
             mobileOnly={true}
+            isSourceSelector={true}
+            customForm={sourceCustomForm}
+            onCustomFormChange={setSourceCustomForm}
           />
         </div>
       
@@ -114,13 +128,16 @@ export default function MobileTranslationLayout({
       {/* Target Language Selector and Output Section */}
       <div className="px-4 py-4 bg-white">
         <div className="mb-4">
-          <LanguageSelector
+          <DropdownSelector
             value={targetForm}
             onChange={setTargetForm}
-            options={formTypes}
+            options={formOptions}
             isLoading={isLoadingForms}
             disabled={isLoadingForms}
             mobileOnly={true}
+            isSourceSelector={false}
+            customForm={targetCustomForm}
+            onCustomFormChange={setTargetCustomForm}
           />
         </div>
         

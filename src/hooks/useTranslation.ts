@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { translateText, APIError, getFormTypes, getTranslationHistory } from '@/services/api';
-import type { TranslationRequest, TranslationHistoryItem, APIHistoryItem } from '@/types';
+import type { TranslationRequest, TranslationHistoryItem, APIHistoryItem, CustomFormState } from '@/types';
 import { isDevelopment } from '@/config/environment';
 import { UI_CONSTANTS, ERROR_MESSAGES, LANGUAGE_DISPLAY } from '@/constants';
 
@@ -72,7 +72,7 @@ function convertAPIHistoryToInternal(apiItem: APIHistoryItem): TranslationHistor
 
   return {
     id: apiItem.id || `api-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    sourceText: apiItem.source_text,
+    inputText: apiItem.source_text,  // Map API's source_text to our inputText field
     targetText: apiItem.target_text,
     sourceForm: apiItem.source_form,
     targetForm: apiItem.target_form,
@@ -83,7 +83,7 @@ function convertAPIHistoryToInternal(apiItem: APIHistoryItem): TranslationHistor
 
 interface UseTranslationReturn {
   // Form data
-  formTypes: Record<string, string>;
+  formOptions: Record<string, string>;
   isLoadingForms: boolean;
   
   // Translation state
@@ -93,6 +93,10 @@ interface UseTranslationReturn {
   outputText: string;
   isTranslating: boolean;
   error: string | null;
+  
+  // Custom form state
+  sourceCustomForm: CustomFormState;
+  targetCustomForm: CustomFormState;
   
   // History state
   translationHistory: TranslationHistoryItem[];
@@ -104,6 +108,8 @@ interface UseTranslationReturn {
   setTargetForm: (form: string) => void;
   setInputText: (text: string) => void;
   setError: (error: string | null) => void;
+  setSourceCustomForm: (customForm: CustomFormState) => void;
+  setTargetCustomForm: (customForm: CustomFormState) => void;
   handleTranslate: () => Promise<void>;
   toggleHistory: () => void;
   refreshHistory: () => void;
@@ -111,7 +117,7 @@ interface UseTranslationReturn {
 
 export function useTranslation(): UseTranslationReturn {
   // State management - like instance variables in a Python class
-  const [formTypes, setFormTypes] = useState<Record<string, string>>({});
+  const [formOptions, setFormOptions] = useState<Record<string, string>>({});
   const [isLoadingForms, setIsLoadingForms] = useState(true);
   const [sourceForm, setSourceForm] = useState('');
   const [targetForm, setTargetForm] = useState('');
@@ -119,6 +125,16 @@ export function useTranslation(): UseTranslationReturn {
   const [outputText, setOutputText] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Custom form state - like having custom form objects in Python
+  const [sourceCustomForm, setSourceCustomForm] = useState<CustomFormState>({
+    isCustom: false,
+    customText: ''
+  });
+  const [targetCustomForm, setTargetCustomForm] = useState<CustomFormState>({
+    isCustom: false,
+    customText: ''
+  });
   
   // History state - like maintaining a list of objects in Python
   const [translationHistory, setTranslationHistory] = useState<TranslationHistoryItem[]>([]);
@@ -137,7 +153,15 @@ export function useTranslation(): UseTranslationReturn {
         }
         
         const response = await getFormTypes();
-        setFormTypes(response.forms);
+        
+        // Transform the new API format to the expected format
+        // Convert { key: { category, description } } to { key: description }
+        const transformedForms: Record<string, string> = {};
+        Object.entries(response.forms).forEach(([key, formData]) => {
+          transformedForms[key] = formData.description;
+        });
+        
+        setFormOptions(transformedForms);
         
         // Set default values - "detect" for source, first form for target
         const formKeys = Object.keys(response.forms);
@@ -172,6 +196,17 @@ export function useTranslation(): UseTranslationReturn {
       setOutputText('');
       return;
     }
+    
+    // Don't translate if custom form is selected but no custom text is provided
+    if (sourceForm === LANGUAGE_DISPLAY.CUSTOM_KEY && !sourceCustomForm.customText.trim()) {
+      setOutputText('');
+      return;
+    }
+    
+    if (targetForm === LANGUAGE_DISPLAY.CUSTOM_KEY && !targetCustomForm.customText.trim()) {
+      setOutputText('');
+      return;
+    }
 
     // Debounced translation - wait for user to stop typing
     debounceTimeoutRef.current = setTimeout(() => {
@@ -184,7 +219,7 @@ export function useTranslation(): UseTranslationReturn {
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [inputText, sourceForm, targetForm, isLoadingForms]);
+  }, [inputText, sourceForm, targetForm, isLoadingForms, sourceCustomForm.customText, targetCustomForm.customText]);
 
   // Fetch history from API - like calling an API endpoint in Python
   const fetchTranslationHistory = async () => {
@@ -246,10 +281,18 @@ export function useTranslation(): UseTranslationReturn {
     setError(null);
     
     try {
+      // Use custom form text if custom form is selected, otherwise use the form key
+      const actualSourceForm = sourceForm === LANGUAGE_DISPLAY.CUSTOM_KEY 
+        ? sourceCustomForm.customText 
+        : sourceForm;
+      const actualTargetForm = targetForm === LANGUAGE_DISPLAY.CUSTOM_KEY 
+        ? targetCustomForm.customText 
+        : targetForm;
+        
       const request: TranslationRequest = {
-        sourceText: inputText,
-        sourceForm: sourceForm,
-        targetForm: targetForm,
+        inputText: inputText,  // Changed from sourceText to match backend expectation
+        sourceForm: actualSourceForm,
+        targetForm: actualTargetForm,
       };
       
       if (isDevelopment()) {
@@ -289,7 +332,7 @@ export function useTranslation(): UseTranslationReturn {
 
   return {
     // Data
-    formTypes,
+    formOptions,
     isLoadingForms,
     sourceForm,
     targetForm,
@@ -297,6 +340,10 @@ export function useTranslation(): UseTranslationReturn {
     outputText,
     isTranslating,
     error,
+    
+    // Custom form data
+    sourceCustomForm,
+    targetCustomForm,
     
     // History data
     translationHistory,
@@ -308,6 +355,8 @@ export function useTranslation(): UseTranslationReturn {
     setTargetForm,
     setInputText,
     setError,
+    setSourceCustomForm,
+    setTargetCustomForm,
     handleTranslate,
     toggleHistory,
     refreshHistory,

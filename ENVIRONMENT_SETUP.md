@@ -69,14 +69,25 @@ GET /forms
 Expected response:
 ```json
 {
-  "count": 39,
+  "count": 27,
   "forms": {
-    "affirmations": "Affirmations - Positive self-talk and empowering statements",
-    "analytical": "Analytical - Data-driven, logical, systematic approach",
-    "art": "Art - Creative, aesthetic, artistic expression",
-    // ... 36 more form types
+    "analytical": {
+      "category": null,
+      "description": "analytical - Logical; Structured reasoning with premises → inference → conclusion; define variables, compare hypotheses, note edge cases."
+    },
+    "formal": {
+      "category": null,
+      "description": "formal - High register, complete sentences, impersonal voice; precise vocabulary; no slang; tidy paragraphing."
+    },
+    "buddhism": {
+      "category": "religion",
+      "description": "buddhism - Four Noble Truths/8-fold path vocabulary; impermanence, not-self, dukkha; calm, precise, practice-oriented tone."
+    }
+    // ... more form types
   },
-  "timestamp": "2025-09-15T14:08:10.221051"
+  "note": "User-submitted custom forms are excluded from this list",
+  "source": "Google Sheet",
+  "timestamp": "2025-10-03T15:35:52.947121"
 }
 ```
 

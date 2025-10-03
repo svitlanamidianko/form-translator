@@ -14,7 +14,7 @@ export default function Home() {
   // Use our custom hook for all translation logic
   // This is like importing a service class in Python
   const {
-    formTypes,
+    formOptions,
     isLoadingForms,
     sourceForm,
     targetForm,
@@ -22,6 +22,8 @@ export default function Home() {
     outputText,
     isTranslating,
     error,
+    sourceCustomForm,
+    targetCustomForm,
     translationHistory,
     isHistoryOpen,
     isLoadingHistory,
@@ -29,6 +31,8 @@ export default function Home() {
     setTargetForm,
     setInputText,
     setError,
+    setSourceCustomForm,
+    setTargetCustomForm,
     toggleHistory,
     refreshHistory,
   } = useTranslation();
@@ -45,7 +49,7 @@ export default function Home() {
       <ContentTabs />
       
       {/* Main Translation Interface - Google Translate Style */}
-      <div className="w-full max-w-full overflow-hidden lg:max-w-6xl lg:mx-auto lg:px-6 lg:py-6">
+      <div className="w-full max-w-full lg:max-w-6xl lg:mx-auto lg:px-6 lg:py-6">
         
         {/* Mobile Layout - Extracted to separate component */}
         <MobileTranslationLayout
@@ -56,11 +60,15 @@ export default function Home() {
           targetForm={targetForm}
           setTargetForm={setTargetForm}
           outputText={outputText}
-          formTypes={formTypes}
+          formOptions={formOptions}
           isLoadingForms={isLoadingForms}
           isTranslating={isTranslating}
           error={error}
           setError={setError}
+          sourceCustomForm={sourceCustomForm}
+          setSourceCustomForm={setSourceCustomForm}
+          targetCustomForm={targetCustomForm}
+          setTargetCustomForm={setTargetCustomForm}
         />
 
         {/* Desktop Layout - Two Columns with Equal Heights */}
@@ -72,10 +80,12 @@ export default function Home() {
             onChange={setInputText}
             selectedForm={sourceForm}
             onFormChange={setSourceForm}
-            formOptions={formTypes}
+            formOptions={formOptions}
             isLoadingForms={isLoadingForms}
             placeholder="enter text to translate..."
             maxLength={UI_CONSTANTS.MAX_TEXT_LENGTH}
+            customForm={sourceCustomForm}
+            onCustomFormChange={setSourceCustomForm}
           />
 
 
@@ -85,11 +95,13 @@ export default function Home() {
             value={outputText}
             selectedForm={targetForm}
             onFormChange={setTargetForm}
-            formOptions={formTypes}
+            formOptions={formOptions}
             isLoadingForms={isLoadingForms}
             isTranslating={isTranslating}
             error={error}
             onClearError={() => setError(null)}
+            customForm={targetCustomForm}
+            onCustomFormChange={setTargetCustomForm}
           />
         </div>
 
@@ -102,7 +114,7 @@ export default function Home() {
         isOpen={isHistoryOpen}
         onToggle={toggleHistory}
         historyItems={translationHistory}
-        formOptions={formTypes}
+        formOptions={formOptions}
         isLoadingHistory={isLoadingHistory}
         onRefreshHistory={refreshHistory}
       />

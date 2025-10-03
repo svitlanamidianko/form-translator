@@ -129,7 +129,7 @@ export default function HistoryItem({ item, formOptions }: HistoryItemProps) {
               </span>
             </div>
             <div className="text-xl text-gray-900 leading-relaxed font-inter">
-              {item.sourceText || <span className="text-gray-400">No source text</span>}
+              {item.inputText || <span className="text-gray-400">No source text</span>}
             </div>
           </div>
 

@@ -2,9 +2,10 @@
 // This follows the DRY principle - Don't Repeat Yourself
 
 import { useRef, useEffect } from 'react';
-import LanguageSelector from './LanguageSelector';
+import DropdownSelector from './DropdownSelector';
 import { useClipboard } from '@/hooks/useClipboard';
 import { UI_CONSTANTS } from '@/constants';
+import type { CustomFormState } from '@/types';
 
 interface TranslationPanelProps {
   type: 'input' | 'output';
@@ -19,6 +20,8 @@ interface TranslationPanelProps {
   onClearError?: () => void;
   placeholder?: string;
   maxLength?: number;
+  customForm?: CustomFormState;
+  onCustomFormChange?: (customForm: CustomFormState) => void;
 }
 
 export default function TranslationPanel({
@@ -34,6 +37,8 @@ export default function TranslationPanel({
   onClearError,
   placeholder = "",
   maxLength = UI_CONSTANTS.MAX_TEXT_LENGTH,
+  customForm = { isCustom: false, customText: '' },
+  onCustomFormChange,
 }: TranslationPanelProps) {
   const isInput = type === 'input';
 
@@ -67,9 +72,9 @@ export default function TranslationPanel({
   };
 
   // Google Translate style - no borders on mobile - identical for both panels
-  const panelClassName = "lg:border lg:border-gray-200 lg:rounded-lg overflow-hidden bg-white lg:flex lg:flex-col";
-  const headerClassName = "px-4 py-3 bg-white lg:bg-gray-50 lg:border-b lg:border-gray-100";
-  const contentClassName = "px-4 py-0 lg:p-4 lg:flex-1 lg:flex lg:flex-col";
+  const panelClassName = "lg:border lg:border-gray-200 lg:rounded-lg bg-white lg:flex lg:flex-col";
+  const headerClassName = "px-4 py-3 bg-white lg:bg-gray-50 lg:border-b lg:border-gray-100 relative overflow-visible";
+  const contentClassName = "px-4 py-0 lg:p-4 lg:flex-1 lg:flex lg:flex-col overflow-hidden";
 
   const renderContent = () => {
     if (isInput) {
@@ -128,13 +133,16 @@ export default function TranslationPanel({
     <div className={panelClassName}>
       {/* Header with language selector */}
       <div className={`${headerClassName} flex items-center space-x-2`}>
-        <LanguageSelector
+        <DropdownSelector
           value={selectedForm}
           onChange={onFormChange}
           options={formOptions}
           isLoading={isLoadingForms}
           disabled={isLoadingForms}
           isSourceSelector={type === 'input'}
+          dropdownAlign={type === 'output' ? 'right' : 'left'}
+          customForm={customForm}
+          onCustomFormChange={onCustomFormChange}
         />
       </div>
 
