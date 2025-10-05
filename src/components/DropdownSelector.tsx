@@ -145,10 +145,10 @@ export default function DropdownSelector({
     !visibleForms.some(([visibleKey]) => visibleKey === key)
   );
   
-  // Add custom form to dropdown options only if it's not currently selected
+  // Always add custom form to dropdown options so it's always available for selection
   const dropdownOptionsWithCustom = [
     ...allDropdownOptions,
-    ...(value !== LANGUAGE_DISPLAY.CUSTOM_KEY ? [[LANGUAGE_DISPLAY.CUSTOM_KEY, LANGUAGE_DISPLAY.CUSTOM_LABEL]] : [])
+    [LANGUAGE_DISPLAY.CUSTOM_KEY, LANGUAGE_DISPLAY.CUSTOM_LABEL]
   ];
   
   const filteredOptions = dropdownOptionsWithCustom.filter(([key, label]) => {
@@ -309,11 +309,17 @@ export default function DropdownSelector({
         colHeights[idx] += block.length;
       });
       
-      // Now flatten columns row-wise for the 3-col grid so items in the same column remain vertically adjacent
-      const maxLen = Math.max(...columns.map(c => c.length));
-      for (let r = 0; r < maxLen; r++) {
-        for (let c = 0; c < 3; c++) {
-          if (columns[c][r]) result.push(columns[c][r]);
+      if (mobileOnly) {
+        // One-column order for mobile: categories (contiguous) first, then singles
+        categoryBlocks.forEach(block => result.push(...block));
+        singleBlocks.forEach(block => result.push(...block));
+      } else {
+        // Desktop: flatten columns row-wise for the 3-col grid
+        const maxLen = Math.max(...columns.map(c => c.length));
+        for (let r = 0; r < maxLen; r++) {
+          for (let c = 0; c < 3; c++) {
+            if (columns[c][r]) result.push(columns[c][r]);
+          }
         }
       }
       
@@ -372,30 +378,93 @@ export default function DropdownSelector({
     }
   };
 
-  // Mobile version - simple dropdown
+  // Mobile version - custom dropdown (single-column panel)
   if (mobileOnly) {
     return (
-      <div className={`relative ${className}`}>
-        <select 
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+      <div className={`relative ${className}`} ref={dropdownRef}>
+        <button
+          onClick={handleDropdownToggle}
           disabled={disabled || isLoading}
-          className="appearance-none bg-transparent border-0 text-sm font-medium text-blue-600 hover:text-blue-800 pr-6 cursor-pointer outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="px-3 py-2 text-sm font-medium transition-colors flex items-center space-x-2 whitespace-nowrap text-blue-600"
         >
-          {allOptions.map(([key, label]) => (
-            <option key={key} value={key}>
-              {getDisplayLabel(key, label)}
-            </option>
-          ))}
-        </select>
-        <svg 
-          className="absolute right-0 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-600 pointer-events-none" 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+          <span>
+            {(() => {
+              // Prefer visible label; fallback to full options map
+              const opt = allOptions.find(([k]) => k === value);
+              return opt ? getDisplayLabel(opt[0], opt[1]) : '';
+            })()}
+          </span>
+          <svg className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {isDropdownOpen && (
+          <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-[70vh] overflow-y-auto w-[92vw]">
+            <div className="p-3">
+              <div className="mb-3">
+                <input
+                  type="text"
+                  placeholder="search forms"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-1 auto-rows-fr">
+                {dropdownOptions.map((option, index) => {
+                  const key = option[0];
+                  const label = option[1];
+                  const metadata = option[2] || {};
+                  
+                  const { category, isFirstInGroup, isLastInGroup } = metadata as { 
+                    category?: string; 
+                    isFirstInGroup?: boolean; 
+                    isLastInGroup?: boolean; 
+                  };
+                  const isGrouped = !!category;
+
+                  return (
+                    <div key={String(key) || `option-${index}`} className="relative">
+                      {/* Continuous visual indicator for grouped items */}
+                      {isGrouped && (() => {
+                        const gapPx = 4; // Tailwind gap-1 ≈ 4px
+                        // Only extend downward to bridge the gap, avoid upward overlap
+                        const topOffset = 0;
+                        const bottomOffset = isLastInGroup ? 0 : -gapPx;
+                        return (
+                          <div className="absolute left-0" style={{ width: '2px', top: topOffset, bottom: bottomOffset }}>
+                            {/* Vertical line spanning across gaps */}
+                            <div className="absolute left-0 w-0.5 bg-gray-400 opacity-70" style={{ width: '2px', top: 0, bottom: 0 }}></div>
+                            {/* Top horizontal cap only on first item */}
+                            {isFirstInGroup && (
+                              <div className="absolute left-0 w-2 h-0.5 bg-gray-400 opacity-70" style={{ width: '8px', height: '2px', top: 0 }}></div>
+                            )}
+                            {/* Bottom horizontal cap only on last item */}
+                            {isLastInGroup && (
+                              <div className="absolute left-0 w-2 h-0.5 bg-gray-400 opacity-70" style={{ width: '8px', height: '2px', bottom: 0 }}></div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                      <button
+                        onClick={() => handleLanguageSelect(String(key))}
+                        className={`
+                          text-left py-2 text-sm rounded-md hover:bg-gray-50 transition-colors
+                          h-10 w-full overflow-hidden whitespace-nowrap text-ellipsis
+                          ${value === key ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}
+                          ${isGrouped ? 'px-2 pl-4' : 'px-3'}
+                        `}
+                      >
+                        {getDisplayLabel(String(key), String(label))}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -412,8 +481,8 @@ export default function DropdownSelector({
           
           return (
             <button
-              key={key}
-              onClick={() => handleLanguageSelect(key)}
+              key={String(key)}
+              onClick={() => handleLanguageSelect(String(key))}
               disabled={disabled}
               className={`
                 ${isFirst ? 'pl-0 pr-4' : 'px-4'} py-2 text-sm font-medium transition-colors whitespace-nowrap
@@ -501,7 +570,7 @@ export default function DropdownSelector({
                       if (key === LANGUAGE_DISPLAY.CUSTOM_KEY && isEditingCustom) {
                         return (
                           <div
-                            key={key}
+                            key={String(key)}
                             className="px-3 py-2 text-sm rounded-md hover:bg-gray-50 h-10 w-full flex items-center"
                           >
                             <input
@@ -531,7 +600,7 @@ export default function DropdownSelector({
                           {/* Continuous visual indicator for grouped items */}
                           {isGrouped && (() => {
                             const gapPx = 4; // Tailwind gap-1 ≈ 4px
-                            // Avoid double-render overlap: only the current item extends downward to bridge the gap
+                            // Only extend downward to bridge the gap, avoid upward overlap
                             const topOffset = 0;
                             const bottomOffset = isLastInGroup ? 0 : -gapPx;
                             return (

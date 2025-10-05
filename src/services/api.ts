@@ -154,6 +154,20 @@ export async function updateTranslationStar(request: StarRequest): Promise<StarR
 }
 
 /**
+ * Submit user feedback
+ * This will call POST /feedback on your backend
+ */
+export async function submitFeedback(text: string): Promise<{ success: boolean; message: string; feedback: { text: string; timestamp: string } }> {
+  try {
+    const response = await apiClient.post<{ success: boolean; message: string; feedback: { text: string; timestamp: string } }>('/feedback', { text });
+    return response;
+  } catch (error) {
+    console.error('Failed to submit feedback:', error);
+    throw error;
+  }
+}
+
+/**
  * Get star count for a specific translation
  * This fetches the global star count from server
  */

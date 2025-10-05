@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import EnvironmentIndicator from '@/components/EnvironmentIndicator';
 import Header from '@/components/Header';
@@ -8,9 +9,13 @@ import TranslationPanel from '@/components/TranslationPanel';
 import MobileTranslationLayout from '@/components/MobileTranslationLayout';
 import BottomActions from '@/components/BottomActions';
 import TranslationHistory from '@/components/TranslationHistory';
+import InfoModal from '@/components/InfoModal';
 import { UI_CONSTANTS } from '@/constants';
 
 export default function Home() {
+  // State for info modal
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+
   // Use our custom hook for all translation logic
   // This is like importing a service class in Python
   const {
@@ -43,8 +48,12 @@ export default function Home() {
       {/* Environment Indicator - only shows in development */}
       <EnvironmentIndicator />
       
-      {/* Header */}
-      <Header />
+      {/* Header with InfoModal */}
+      <Header 
+        onInfoClick={() => setIsInfoModalOpen(!isInfoModalOpen)} 
+        onCloseInfoModal={() => setIsInfoModalOpen(false)}
+        isInfoModalOpen={isInfoModalOpen}
+      />
       
       {/* Content Type Tabs */}
       <div className="pt-20">
@@ -52,7 +61,7 @@ export default function Home() {
       </div>
       
       {/* Main Translation Interface - Google Translate Style */}
-      <div className="w-full max-w-full lg:max-w-6xl lg:mx-auto lg:px-6 lg:py-6">
+      <div className="w-full max-w-full lg:max-w-6xl lg:mx-auto lg:px-6 lg:py-6 relative">
         
         {/* Mobile Layout - Extracted to separate component */}
         <MobileTranslationLayout
