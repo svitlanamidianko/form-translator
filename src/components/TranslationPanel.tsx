@@ -5,7 +5,7 @@ import { useRef, useEffect } from 'react';
 import DropdownSelector from './DropdownSelector';
 import { useClipboard } from '@/hooks/useClipboard';
 import { UI_CONSTANTS } from '@/constants';
-import type { CustomFormState } from '@/types';
+import type { CustomFormState, FormOption } from '@/types';
 
 interface TranslationPanelProps {
   type: 'input' | 'output';
@@ -14,6 +14,7 @@ interface TranslationPanelProps {
   selectedForm: string;
   onFormChange: (form: string) => void;
   formOptions: Record<string, string>;
+  formOptionsWithCategories?: FormOption[];
   isLoadingForms: boolean;
   isTranslating?: boolean;
   error?: string | null;
@@ -31,6 +32,7 @@ export default function TranslationPanel({
   selectedForm,
   onFormChange,
   formOptions,
+  formOptionsWithCategories,
   isLoadingForms,
   isTranslating = false,
   error = null,
@@ -137,6 +139,7 @@ export default function TranslationPanel({
           value={selectedForm}
           onChange={onFormChange}
           options={formOptions}
+          optionsWithCategories={formOptionsWithCategories}
           isLoading={isLoadingForms}
           disabled={isLoadingForms}
           isSourceSelector={type === 'input'}

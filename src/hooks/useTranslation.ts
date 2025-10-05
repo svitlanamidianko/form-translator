@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { translateText, APIError, getFormTypes, getTranslationHistory } from '@/services/api';
-import type { TranslationRequest, TranslationHistoryItem, APIHistoryItem, CustomFormState } from '@/types';
+import type { TranslationRequest, TranslationHistoryItem, APIHistoryItem, CustomFormState, FormOption } from '@/types';
 import { isDevelopment } from '@/config/environment';
 import { UI_CONSTANTS, ERROR_MESSAGES, LANGUAGE_DISPLAY } from '@/constants';
 
@@ -84,6 +84,7 @@ function convertAPIHistoryToInternal(apiItem: APIHistoryItem): TranslationHistor
 interface UseTranslationReturn {
   // Form data
   formOptions: Record<string, string>;
+  formOptionsWithCategories: FormOption[];
   isLoadingForms: boolean;
   
   // Translation state
@@ -118,6 +119,7 @@ interface UseTranslationReturn {
 export function useTranslation(): UseTranslationReturn {
   // State management - like instance variables in a Python class
   const [formOptions, setFormOptions] = useState<Record<string, string>>({});
+  const [formOptionsWithCategories, setFormOptionsWithCategories] = useState<FormOption[]>([]);
   const [isLoadingForms, setIsLoadingForms] = useState(true);
   const [sourceForm, setSourceForm] = useState('');
   const [targetForm, setTargetForm] = useState('');
@@ -157,11 +159,19 @@ export function useTranslation(): UseTranslationReturn {
         // Transform the new API format to the expected format
         // Convert { key: { category, description } } to { key: description }
         const transformedForms: Record<string, string> = {};
+        const formsWithCategories: FormOption[] = [];
+        
         Object.entries(response.forms).forEach(([key, formData]) => {
           transformedForms[key] = formData.description;
+          formsWithCategories.push({
+            key,
+            label: formData.description,
+            category: formData.category
+          });
         });
         
         setFormOptions(transformedForms);
+        setFormOptionsWithCategories(formsWithCategories);
         
         // Set default values - "detect" for source, first form for target
         const formKeys = Object.keys(response.forms);
@@ -333,6 +343,7 @@ export function useTranslation(): UseTranslationReturn {
   return {
     // Data
     formOptions,
+    formOptionsWithCategories,
     isLoadingForms,
     sourceForm,
     targetForm,

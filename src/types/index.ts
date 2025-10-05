@@ -46,6 +46,13 @@ export interface SelectOption {
   value: string;
 }
 
+// Enhanced form option with category information
+export interface FormOption {
+  key: string;
+  label: string;
+  category: string | null;
+}
+
 // Custom form types for user-defined forms
 export interface CustomFormState {
   isCustom: boolean;

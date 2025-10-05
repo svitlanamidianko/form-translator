@@ -77,32 +77,37 @@ export default function ContentTabs({ activeTab = 'text', onTabChange }: Content
 
   return (
     <div className="bg-white py-4">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="flex gap-2 items-center">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabClick(tab.id)}
-              className={`
-                px-4 py-2 text-sm font-medium rounded-lg flex items-center space-x-2 transition-colors
-                ${activeTab === tab.id
-                  ? 'text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100'
-                  : 'text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400'
-                }
-              `}
-            >
-              <div className={activeTab === tab.id ? 'text-blue-600' : 'text-gray-600'}>
-                {tab.icon}
-              </div>
-              <span>{tab.label}</span>
-            </button>
-          ))}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 sm:items-center">
+          {/* Tabs Row */}
+          <div className="flex gap-2 items-center overflow-x-auto">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabClick(tab.id)}
+                className={`
+                  px-3 sm:px-4 py-2 text-sm font-medium rounded-lg flex items-center space-x-2 transition-colors whitespace-nowrap flex-shrink-0
+                  ${activeTab === tab.id
+                    ? 'text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100'
+                    : 'text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                  }
+                `}
+              >
+                <div className={activeTab === tab.id ? 'text-blue-600' : 'text-gray-600'}>
+                  {tab.icon}
+                </div>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
           
-          {/* Feedback message */}
+          {/* Feedback message - Better mobile handling */}
           {feedbackMessage && (
-            <span className="ml-4 text-sm text-gray-500">
-              {feedbackMessage}
-            </span>
+            <div className="flex-shrink-0 px-2">
+              <span className="text-sm text-gray-500 break-words sm:whitespace-nowrap">
+                {feedbackMessage}
+              </span>
+            </div>
           )}
         </div>
       </div>

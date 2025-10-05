@@ -4,7 +4,7 @@
 import { useClipboard } from '@/hooks/useClipboard';
 import DropdownSelector from './DropdownSelector';
 import { UI_CONSTANTS } from '@/constants';
-import type { CustomFormState } from '@/types';
+import type { CustomFormState, FormOption } from '@/types';
 
 interface MobileTranslationLayoutProps {
   // Source/Input props
@@ -20,6 +20,7 @@ interface MobileTranslationLayoutProps {
   
   // Form options
   formOptions: Record<string, string>;
+  formOptionsWithCategories?: FormOption[];
   isLoadingForms: boolean;
   
   // Custom form props
@@ -43,6 +44,7 @@ export default function MobileTranslationLayout({
   setTargetForm,
   outputText,
   formOptions,
+  formOptionsWithCategories,
   isLoadingForms,
   sourceCustomForm,
   setSourceCustomForm,
@@ -77,6 +79,7 @@ export default function MobileTranslationLayout({
             value={sourceForm}
             onChange={setSourceForm}
             options={formOptions}
+            optionsWithCategories={formOptionsWithCategories}
             isLoading={isLoadingForms}
             disabled={isLoadingForms}
             mobileOnly={true}
@@ -92,7 +95,7 @@ export default function MobileTranslationLayout({
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="enter text to translate..."
-            className="w-full min-h-[120px] resize-none border-none outline-none leading-relaxed bg-transparent placeholder-gray-400 font-inter text-xl"
+            className="w-full min-h-[120px] resize-none border-none outline-none leading-relaxed bg-transparent placeholder-gray-400 font-inter text-lg sm:text-xl"
             style={{ color: '#202124' }}
             maxLength={UI_CONSTANTS.MAX_TEXT_LENGTH}
           />
@@ -100,11 +103,11 @@ export default function MobileTranslationLayout({
         
         {/* Bottom Row */}
         <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 min-w-0 flex-1">
             <div className="flex items-center space-x-2">
               <button 
                 onClick={handleCopyInput}
-                className="py-2 pr-2 pl-0 rounded-full hover:bg-gray-100 transition-colors"
+                className="py-2 pr-2 pl-0 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0"
                 disabled={!inputText || !inputText.trim()}
                 title="Copy to clipboard"
               >
@@ -115,13 +118,13 @@ export default function MobileTranslationLayout({
               
               {/* Copy feedback message for input */}
               {showInputCopied && (
-                <span className="text-sm text-gray-600 font-medium transition-opacity duration-300">
+                <span className="text-sm text-gray-600 font-medium transition-opacity duration-300 whitespace-nowrap">
                   copied to clipboard
                 </span>
               )}
             </div>
           </div>
-          <span className="text-sm text-gray-400">{inputText.length} / {UI_CONSTANTS.MAX_TEXT_LENGTH}</span>
+          <span className="text-sm text-gray-400 flex-shrink-0 ml-2">{inputText.length} / {UI_CONSTANTS.MAX_TEXT_LENGTH}</span>
         </div>
       </div>
 
@@ -132,6 +135,7 @@ export default function MobileTranslationLayout({
             value={targetForm}
             onChange={setTargetForm}
             options={formOptions}
+            optionsWithCategories={formOptionsWithCategories}
             isLoading={isLoadingForms}
             disabled={isLoadingForms}
             mobileOnly={true}
@@ -153,9 +157,9 @@ export default function MobileTranslationLayout({
               <svg className="w-5 h-5 text-red-500 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
-              <div>
+              <div className="min-w-0 flex-1">
                 <span className="text-red-600 font-medium">Error:</span>
-                <p className="text-red-600 mt-1">{error}</p>
+                <p className="text-red-600 mt-1 break-words">{error}</p>
                 <button 
                   onClick={() => setError(null)}
                   className="text-sm text-blue-600 hover:text-blue-800 mt-2"
@@ -165,7 +169,7 @@ export default function MobileTranslationLayout({
               </div>
             </div>
           ) : (
-            <div className="leading-relaxed min-h-[120px] flex items-start font-inter text-xl" style={{ color: '#202124' }}>
+            <div className="leading-relaxed min-h-[120px] flex items-start font-inter text-lg sm:text-xl break-words" style={{ color: '#202124' }}>
               {outputText || <span className="text-gray-400">translation</span>}
             </div>
           )}
@@ -173,11 +177,11 @@ export default function MobileTranslationLayout({
         
         {/* Bottom Row */}
         <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 min-w-0 flex-1">
             <div className="flex items-center space-x-2">
               <button 
                 onClick={handleCopyOutput}
-                className="py-2 pr-2 pl-0 rounded-full hover:bg-gray-100 transition-colors"
+                className="py-2 pr-2 pl-0 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0"
                 disabled={!outputText || !outputText.trim()}
                 title="Copy to clipboard"
               >
@@ -188,7 +192,7 @@ export default function MobileTranslationLayout({
               
               {/* Copy feedback message for output */}
               {showOutputCopied && (
-                <span className="text-sm text-gray-600 font-medium transition-opacity duration-300">
+                <span className="text-sm text-gray-600 font-medium transition-opacity duration-300 whitespace-nowrap">
                   copied to clipboard
                 </span>
               )}

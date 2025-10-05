@@ -15,6 +15,7 @@ export default function Home() {
   // This is like importing a service class in Python
   const {
     formOptions,
+    formOptionsWithCategories,
     isLoadingForms,
     sourceForm,
     targetForm,
@@ -46,7 +47,9 @@ export default function Home() {
       <Header />
       
       {/* Content Type Tabs */}
-      <ContentTabs />
+      <div className="pt-20">
+        <ContentTabs />
+      </div>
       
       {/* Main Translation Interface - Google Translate Style */}
       <div className="w-full max-w-full lg:max-w-6xl lg:mx-auto lg:px-6 lg:py-6">
@@ -61,6 +64,7 @@ export default function Home() {
           setTargetForm={setTargetForm}
           outputText={outputText}
           formOptions={formOptions}
+          formOptionsWithCategories={formOptionsWithCategories}
           isLoadingForms={isLoadingForms}
           isTranslating={isTranslating}
           error={error}
@@ -81,6 +85,7 @@ export default function Home() {
             selectedForm={sourceForm}
             onFormChange={setSourceForm}
             formOptions={formOptions}
+            formOptionsWithCategories={formOptionsWithCategories}
             isLoadingForms={isLoadingForms}
             placeholder="enter text to translate..."
             maxLength={UI_CONSTANTS.MAX_TEXT_LENGTH}
@@ -96,6 +101,7 @@ export default function Home() {
             selectedForm={targetForm}
             onFormChange={setTargetForm}
             formOptions={formOptions}
+            formOptionsWithCategories={formOptionsWithCategories}
             isLoadingForms={isLoadingForms}
             isTranslating={isTranslating}
             error={error}
@@ -106,7 +112,7 @@ export default function Home() {
         </div>
 
         {/* Bottom Actions */}
-        <BottomActions onHistoryClick={toggleHistory} />
+        <BottomActions onHistoryClick={toggleHistory} isHistoryOpen={isHistoryOpen} />
       </div>
 
       {/* Translation History - appears below main content when opened */}

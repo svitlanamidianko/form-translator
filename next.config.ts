@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   // This is similar to how you might configure different settings in Python
   
   // Enable source maps in development for better debugging
-  productionBrowserSourceMaps: process.env.NODE_ENV === 'development',
+  productionBrowserSourceMaps: process.env.NODE_ENV === 'production',
   
   // Optimize for production builds
   compress: true,

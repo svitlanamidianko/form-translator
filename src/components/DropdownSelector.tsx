@@ -3,12 +3,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { LANGUAGE_DISPLAY } from '@/constants';
-import type { CustomFormState } from '@/types';
+import type { CustomFormState, FormOption } from '@/types';
 
 interface DropdownSelectorProps {
   value: string;
   onChange: (value: string) => void;
   options: Record<string, string>;
+  optionsWithCategories?: FormOption[]; // Optional category information
   isLoading?: boolean;
   disabled?: boolean;
   className?: string;
@@ -23,6 +24,7 @@ export default function DropdownSelector({
   value,
   onChange,
   options,
+  optionsWithCategories,
   isLoading = false,
   disabled = false,
   className = "",
@@ -43,6 +45,13 @@ export default function DropdownSelector({
       return label;
     }
     return label.split(' - ')[0];
+  };
+
+  // Function to check if a form should be grouped
+  const isFormGrouped = (key: string): boolean => {
+    if (!optionsWithCategories) return false;
+    const formOption = optionsWithCategories.find(opt => opt.key === key);
+    return formOption?.category !== null && formOption?.category !== undefined;
   };
 
   // Close dropdown when clicking outside
@@ -142,11 +151,181 @@ export default function DropdownSelector({
     ...(value !== LANGUAGE_DISPLAY.CUSTOM_KEY ? [[LANGUAGE_DISPLAY.CUSTOM_KEY, LANGUAGE_DISPLAY.CUSTOM_LABEL]] : [])
   ];
   
-  const dropdownOptions = dropdownOptionsWithCustom.filter(([key, label]) => {
+  const filteredOptions = dropdownOptionsWithCustom.filter(([key, label]) => {
     if (!searchQuery.trim()) return true;
     const displayLabel = getDisplayLabel(key, label);
     return displayLabel.toLowerCase().includes(searchQuery.toLowerCase());
   });
+
+  // Smart sorting and distribution algorithm
+  const dropdownOptions = optionsWithCategories ? 
+    (() => {
+      // Group forms by category
+      const categoryGroups: Record<string, Array<[string, string]>> = {};
+      const ungroupedForms: Array<[string, string]> = [];
+
+      // Hard overrides to guarantee grouping for important families
+      const religionKeys = new Set([
+        'buddhism','hinduism','islam','christian','christianity','judaism','taoism','sikhism'
+      ]);
+      const ideologyKeys = new Set([
+        'capitalism','communism','feudalism','socialism','anarchism','liberalism','conservatism'
+      ]);
+
+      // Normalize and canonicalize category labels so minor variations still group together
+      const normalizeCategory = (raw?: string | null): string | null => {
+        if (!raw) return null;
+        let s = String(raw)
+          .trim()
+          .toLowerCase()
+          .replace(/[\-_]+/g, ' ')
+          .replace(/\s+/g, ' ');
+        // Collapse trivial pluralization (religions -> religion)
+        if (s.endsWith('s')) s = s.slice(0, -1);
+        // Friendly aliases to help grouping similar domains
+        const aliasMap: Record<string, string> = {
+          'religion': 'religion',
+          'economic system': 'economics',
+          'economic': 'economics',
+          'economics': 'economics',
+          'political economy': 'economics'
+        };
+        return aliasMap[s] ?? s;
+      };
+
+      // Debug: Log all forms and their categories
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Debug: All forms with categories:', optionsWithCategories);
+      }
+      
+      filteredOptions.forEach(([key, label]) => {
+        if (key === LANGUAGE_DISPLAY.CUSTOM_KEY) return; // Handle custom separately
+        
+        const formOption = optionsWithCategories.find(opt => opt.key === key);
+        let category = normalizeCategory(formOption?.category ?? null);
+
+        // Key-based overrides come first to guarantee consistent grouping
+        const keyLc = String(key).toLowerCase();
+        if (religionKeys.has(keyLc)) category = 'religion';
+        if (ideologyKeys.has(keyLc)) category = 'ideology';
+
+        // Heuristic fallback: infer category from label when API category is missing
+        if (!category) {
+          const labelLc = String(label).trim().toLowerCase();
+          const isReligion = ['buddhism', 'hinduism', 'islam', 'christian', 'christianity', 'judaism', 'taoism', 'sikhism']
+            .some(name => labelLc.includes(name));
+          const isEconomics = ['capitalism', 'communism', 'feudalism', 'socialism', 'anarchism']
+            .some(name => labelLc.includes(name));
+          const isAttunement = ['attunement']
+            .some(name => labelLc.includes(name));
+          if (isReligion) category = 'religion';
+          else if (isEconomics) category = 'ideology';
+          else if (isAttunement) category = 'attunement';
+        }
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Form: ${key}, Category: ${category}`);
+        }
+        
+        if (category && category !== null && category !== '') {
+          if (!categoryGroups[category]) {
+            categoryGroups[category] = [];
+          }
+          categoryGroups[category].push([key, label]);
+        } else {
+          ungroupedForms.push([key, label]);
+        }
+      });
+      
+      // Debug: Log category groups
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📊 Category groups:', categoryGroups);
+        console.log('🔓 Ungrouped forms:', ungroupedForms);
+      }
+      
+      // Sort forms within each category alphabetically
+      Object.keys(categoryGroups).forEach(category => {
+        categoryGroups[category].sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
+      });
+      
+      // Sort categories alphabetically
+      const sortedCategories = Object.keys(categoryGroups).sort();
+      
+      // Build category-contiguous blocks, then split into three columns with block awareness
+      const result: Array<[string, string, { category?: string; isFirstInGroup?: boolean; isLastInGroup?: boolean }]> = [];
+      const columns: Array<Array<[string, string, { category?: string; isFirstInGroup?: boolean; isLastInGroup?: boolean }]>> = [[], [], []];
+      
+      // Helper function to find the column with the least items
+      const getLeastLoadedColumn = () => {
+        let minCount = columns[0].length;
+        let minIndex = 0;
+        for (let i = 1; i < columns.length; i++) {
+          if (columns[i].length < minCount) {
+            minCount = columns[i].length;
+            minIndex = i;
+          }
+        }
+        return minIndex;
+      };
+      
+      // Prepare blocks: start with ungrouped items as single-item blocks
+      const categoryBlocks: Array<Array<[string, string, { category?: string; isFirstInGroup?: boolean; isLastInGroup?: boolean }]>> = [];
+      const singleBlocks: Array<Array<[string, string, { category?: string; isFirstInGroup?: boolean; isLastInGroup?: boolean }]>> = [];
+      ungroupedForms.forEach(([key, label]) => {
+        singleBlocks.push([[key, label, {}]]);
+      });
+      
+      // Append categories as contiguous blocks (for a continuous bracket line)
+      sortedCategories.forEach(category => {
+        const forms = categoryGroups[category];
+        const block: Array<[string, string, { category?: string; isFirstInGroup?: boolean; isLastInGroup?: boolean }]> = [];
+        forms.forEach(([key, label], index) => {
+          block.push([key, label, {
+            category,
+            isFirstInGroup: index === 0,
+            isLastInGroup: index === forms.length - 1,
+          }]);
+        });
+        categoryBlocks.push(block);
+      });
+      
+      // Phase A: place all category blocks first (top of each column), greedily balancing heights
+      const colHeights = [0, 0, 0];
+      const getTargetCol = () => {
+        let idx = 0;
+        for (let i = 1; i < 3; i++) if (colHeights[i] < colHeights[idx]) idx = i;
+        return idx;
+      };
+      categoryBlocks.forEach(block => {
+        const idx = getTargetCol();
+        columns[idx].push(...block);
+        colHeights[idx] += block.length;
+      });
+
+      // Phase B: distribute single (uncategorized) items to the bottom, balancing as we go
+      singleBlocks.forEach(block => {
+        const idx = getTargetCol();
+        columns[idx].push(...block);
+        colHeights[idx] += block.length;
+      });
+      
+      // Now flatten columns row-wise for the 3-col grid so items in the same column remain vertically adjacent
+      const maxLen = Math.max(...columns.map(c => c.length));
+      for (let r = 0; r < maxLen; r++) {
+        for (let c = 0; c < 3; c++) {
+          if (columns[c][r]) result.push(columns[c][r]);
+        }
+      }
+      
+      // Add custom form at the end
+      const customForm = filteredOptions.find(([key]) => key === LANGUAGE_DISPLAY.CUSTOM_KEY);
+      if (customForm) {
+        result.push([customForm[0], customForm[1], {}]);
+      }
+      
+      return result;
+    })() : 
+    filteredOptions.map(([key, label]) => [key, label, {}]);
 
   // Handle language selection
   const handleLanguageSelect = (languageKey: string) => {
@@ -304,9 +483,20 @@ export default function DropdownSelector({
                     />
                   </div>
                   
-                  {/* Languages grid */}
+                  {/* Languages grid - three columns with block-aware splitting */}
                   <div className="grid grid-cols-3 gap-1 auto-rows-fr">
-                    {dropdownOptions.map(([key, label]) => {
+                    {dropdownOptions.map((option, index) => {
+                      // Handle new option structure with grouping metadata
+                      const key = option[0];
+                      const label = option[1];
+                      const metadata = option[2] || {};
+                      
+                      const { category, isFirstInGroup, isLastInGroup } = metadata as { 
+                        category?: string; 
+                        isFirstInGroup?: boolean; 
+                        isLastInGroup?: boolean; 
+                      };
+                      const isGrouped = !!category;
                       // If this is custom form and we're editing it, show input instead of button
                       if (key === LANGUAGE_DISPLAY.CUSTOM_KEY && isEditingCustom) {
                         return (
@@ -335,18 +525,42 @@ export default function DropdownSelector({
                       }
                       
                       // Regular button for all other forms (including unselected custom form)
+                      
                       return (
-                        <button
-                          key={key}
-                          onClick={() => handleLanguageSelect(key)}
-                          className={`
-                            text-left px-3 py-2 text-sm rounded-md hover:bg-gray-50 transition-colors
-                            h-10 w-full overflow-hidden whitespace-nowrap text-ellipsis
-                            ${value === key && key !== LANGUAGE_DISPLAY.CUSTOM_KEY ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}
-                          `}
-                        >
-                          {getDisplayLabel(key, label)}
-                        </button>
+                        <div key={String(key) || `option-${index}`} className="relative">
+                          {/* Continuous visual indicator for grouped items */}
+                          {isGrouped && (() => {
+                            const gapPx = 4; // Tailwind gap-1 ≈ 4px
+                            // Avoid double-render overlap: only the current item extends downward to bridge the gap
+                            const topOffset = 0;
+                            const bottomOffset = isLastInGroup ? 0 : -gapPx;
+                            return (
+                              <div className="absolute left-0" style={{ width: '2px', top: topOffset, bottom: bottomOffset }}>
+                                {/* Vertical line spanning across gaps */}
+                                <div className="absolute left-0 w-0.5 bg-gray-400 opacity-70" style={{ width: '2px', top: 0, bottom: 0 }}></div>
+                                {/* Top horizontal cap only on first item */}
+                                {isFirstInGroup && (
+                                  <div className="absolute left-0 w-2 h-0.5 bg-gray-400 opacity-70" style={{ width: '8px', height: '2px', top: 0 }}></div>
+                                )}
+                                {/* Bottom horizontal cap only on last item */}
+                                {isLastInGroup && (
+                                  <div className="absolute left-0 w-2 h-0.5 bg-gray-400 opacity-70" style={{ width: '8px', height: '2px', bottom: 0 }}></div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                          <button
+                            onClick={() => handleLanguageSelect(String(key))}
+                            className={`
+                              text-left py-2 text-sm rounded-md hover:bg-gray-50 transition-colors
+                              h-10 w-full overflow-hidden whitespace-nowrap text-ellipsis
+                              ${value === key && key !== LANGUAGE_DISPLAY.CUSTOM_KEY ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}
+                              ${isGrouped ? 'px-2 pl-4' : 'px-3'}
+                            `}
+                          >
+                            {getDisplayLabel(String(key), String(label))}
+                          </button>
+                        </div>
                       );
                     })}
                   </div>

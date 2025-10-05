@@ -129,7 +129,7 @@ export default function HistoryItem({ item, formOptions }: HistoryItemProps) {
               </span>
             </div>
             <div className="text-xl text-gray-900 leading-relaxed font-inter">
-              {item.inputText || <span className="text-gray-400">No source text</span>}
+              {item.inputText || <span className="text-gray-400">no source text</span>}
             </div>
           </div>
 
@@ -141,7 +141,7 @@ export default function HistoryItem({ item, formOptions }: HistoryItemProps) {
               </span>
             </div>
             <div className="text-xl text-gray-900 leading-relaxed font-inter">
-              {item.targetText || <span className="text-gray-400">No translation</span>}
+              {item.targetText || <span className="text-gray-400">no translation</span>}
             </div>
           </div>
         </div>
@@ -154,7 +154,7 @@ export default function HistoryItem({ item, formOptions }: HistoryItemProps) {
           <button 
             onClick={handleStarClick}
             className="p-1 rounded-full transition-colors hover:bg-gray-100 cursor-pointer"
-            title={isStarred ? "Remove from favorites" : "Add to favorites"}
+            title={isStarred ? "remove from favorites" : "add to favorites"}
           >
             {isStarred ? (
               // Filled star (starred by current user)

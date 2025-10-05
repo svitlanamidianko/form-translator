@@ -32,7 +32,7 @@ export default function TranslationHistory({
           // Loading state - like showing a spinner in Python
           <div className="flex flex-col items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
-            <p className="text-gray-500">Loading translation history...</p>
+            <p className="text-gray-500">loading translation history...</p>
           </div>
         ) : historyItems.length === 0 ? (
           // Empty state - like showing a placeholder in Python when list is empty
@@ -42,9 +42,9 @@ export default function TranslationHistory({
                 <path d="M13,3A9,9 0 0,0 4,12H1L4.89,15.89L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3Z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No translations yet</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">no translations yet</h3>
             <p className="text-gray-500 max-w-sm">
-              Start translating to see your history appear here. All your translations will be saved automatically.
+              start translating to see your history appear here. all your translations will be saved automatically.
             </p>
           </div>
         ) : (
