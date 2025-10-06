@@ -161,7 +161,7 @@ export default function MobileTranslationLayout({
           {isTranslating ? (
             <div className="flex items-center space-x-2 pt-4">
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-              <span className="text-gray-500">Translating...</span>
+              <span className="text-gray-500">translating...</span>
             </div>
           ) : error ? (
             <div className="flex items-start space-x-2 pt-4">

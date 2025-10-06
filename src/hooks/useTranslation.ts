@@ -315,28 +315,8 @@ export function useTranslation(): UseTranslationReturn {
       setDetectedForm(response.detectedForm);
       setDetectionReasoning(response.reasoning);
       
-      // If it's a custom form, set up the custom form state
-      if (response.isCustomForm) {
-        setSourceCustomForm({
-          isCustom: true,
-          customText: response.detectedForm
-        });
-        // Set the source form to the detected form (which will be shown as a new button)
-        setSourceForm(response.detectedForm);
-      } else {
-        // Check if the detected form exists in our available forms
-        if (formOptions[response.detectedForm]) {
-          // It's an existing form, set it as the source form
-          setSourceForm(response.detectedForm);
-        } else {
-          // Detected form doesn't exist in our forms, treat it as custom
-          setSourceCustomForm({
-            isCustom: true,
-            customText: response.detectedForm
-          });
-          setSourceForm(response.detectedForm);
-        }
-      }
+      // Keep the source form as "detect" so the detected form shows in the button
+      // Don't change the sourceForm - let the DropdownSelector handle showing the detected form
       
       // Now that we have the detected form, proceed with translation
       if (isDevelopment()) {
@@ -380,8 +360,11 @@ export function useTranslation(): UseTranslationReturn {
     
     try {
       // Use custom form text if custom form is selected, otherwise use the form key
+      // If source form is "detect" and we have a detected form, use the detected form
       const actualSourceForm = sourceForm === LANGUAGE_DISPLAY.CUSTOM_KEY 
         ? sourceCustomForm.customText 
+        : sourceForm === LANGUAGE_DISPLAY.DETECT_KEY && detectedForm
+        ? detectedForm
         : sourceForm;
       const actualTargetForm = targetForm === LANGUAGE_DISPLAY.CUSTOM_KEY 
         ? targetCustomForm.customText 

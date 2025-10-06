@@ -19,6 +19,6 @@ export const LANGUAGE_DISPLAY = {
   DETECT_KEY: 'detect',
   DETECT_LABEL: 'detect form ✨',
   CUSTOM_KEY: 'custom',
-  CUSTOM_LABEL: 'custom form',
+  CUSTOM_LABEL: 'custom form 🪄',
   MAX_VISIBLE_LANGUAGES: 4, // Show detect form + 3 forms to prevent overflow with long names
 } as const;

@@ -120,8 +120,9 @@ export default function DropdownSelector({
       }
     }
     
-    // If we have a detected form and it's not already in the options, add it as a new button
-    if (detectedForm && isSourceSelector && !options[detectedForm]) {
+    // If we have a detected form, always show it prominently after detect button
+    // This works whether sourceForm is "detect" or the detected form itself
+    if (detectedForm && isSourceSelector) {
       const detectedOption: [string, string] = [detectedForm, detectedForm];
       const defaultVisible = allOptions.slice(0, LANGUAGE_DISPLAY.MAX_VISIBLE_LANGUAGES - 1);
       
@@ -162,13 +163,18 @@ export default function DropdownSelector({
     !visibleForms.some(([visibleKey]) => visibleKey === key)
   );
   
-  // Always add custom form to dropdown options so it's always available for selection
-  const dropdownOptionsWithCustom = [
+  // Always add custom form and detect form to dropdown options so they're always available for selection
+  const dropdownOptionsWithSpecial = [
     ...allDropdownOptions,
     [LANGUAGE_DISPLAY.CUSTOM_KEY, LANGUAGE_DISPLAY.CUSTOM_LABEL]
   ];
   
-  const filteredOptions = dropdownOptionsWithCustom.filter(([key, label]) => {
+  // If detect form is not visible, add it to dropdown options
+  if (!visibleForms.some(([key]) => key === LANGUAGE_DISPLAY.DETECT_KEY)) {
+    dropdownOptionsWithSpecial.unshift([LANGUAGE_DISPLAY.DETECT_KEY, LANGUAGE_DISPLAY.DETECT_LABEL]);
+  }
+  
+  const filteredOptions = dropdownOptionsWithSpecial.filter(([key, label]) => {
     if (!searchQuery.trim()) return true;
     const displayLabel = getDisplayLabel(key, label);
     return displayLabel.toLowerCase().includes(searchQuery.toLowerCase());
@@ -416,6 +422,11 @@ export default function DropdownSelector({
                 );
               }
               
+              // If we have a detected form, show it (regardless of current sourceForm value)
+              if (detectedForm) {
+                return detectedForm;
+              }
+              
               // Prefer visible label; fallback to full options map
               const opt = allOptions.find(([k]) => k === value);
               return opt ? getDisplayLabel(opt[0], opt[1]) : '';
@@ -537,24 +548,24 @@ export default function DropdownSelector({
         })}
 
         {/* Dropdown button for remaining languages */}
-        {allDropdownOptions.length > 0 && (
+        {dropdownOptionsWithSpecial.length > 0 && (
           <div className="relative">
             <button
               onClick={handleDropdownToggle}
               disabled={disabled}
               className={`
                 ${dropdownAlign === 'right' ? 'px-2 pr-1' : 'px-4'} py-2 text-sm font-medium transition-colors flex items-center space-x-2 whitespace-nowrap
-                ${allDropdownOptions.some(([key]) => key === value)
+                ${dropdownOptionsWithSpecial.some(([key]) => key === value)
                   ? 'text-blue-600'
                   : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded'
                 }
                 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
               `}
             >
-              {allDropdownOptions.find(([key]) => key === value)?.[1] ? (
-                <span className={allDropdownOptions.some(([key]) => key === value) ? 'border-b-2 border-blue-600 pb-1' : ''}>
+              {dropdownOptionsWithSpecial.find(([key]) => key === value)?.[1] ? (
+                <span className={dropdownOptionsWithSpecial.some(([key]) => key === value) ? 'border-b-2 border-blue-600 pb-1' : ''}>
                   {(() => {
-                    const found = allDropdownOptions.find(([key]) => key === value);
+                    const found = dropdownOptionsWithSpecial.find(([key]) => key === value);
                     return found ? getDisplayLabel(found[0], found[1]) : '';
                   })()}
                 </span>
@@ -574,7 +585,7 @@ export default function DropdownSelector({
       </div>
       
       {/* Dropdown menu - positioned relative to entire DropdownSelector */}
-      {isDropdownOpen && allDropdownOptions.length > 0 && (
+      {isDropdownOpen && dropdownOptionsWithSpecial.length > 0 && (
         <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-[80vh] overflow-y-auto w-[600px] max-w-[95vw]">
                 <div className="p-4">
                   {/* Search box */}
