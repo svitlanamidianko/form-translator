@@ -23,6 +23,9 @@ interface TranslationPanelProps {
   maxLength?: number;
   customForm?: CustomFormState;
   onCustomFormChange?: (customForm: CustomFormState) => void;
+  detectedForm?: string | null;
+  isDetectingForm?: boolean;
+  detectionReasoning?: string | null;
 }
 
 export default function TranslationPanel({
@@ -41,6 +44,9 @@ export default function TranslationPanel({
   maxLength = UI_CONSTANTS.MAX_TEXT_LENGTH,
   customForm = { isCustom: false, customText: '' },
   onCustomFormChange,
+  detectedForm = null,
+  isDetectingForm = false,
+  detectionReasoning = null,
 }: TranslationPanelProps) {
   const isInput = type === 'input';
 
@@ -81,18 +87,21 @@ export default function TranslationPanel({
   const renderContent = () => {
     if (isInput) {
       return (
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => {
-            onChange?.(e.target.value);
-            setTimeout(adjustTextareaHeight, 0); // Adjust height after state update
-          }}
-          placeholder={placeholder}
-          className="w-full min-h-32 lg:min-h-48 resize-none border-none outline-none leading-relaxed bg-transparent py-4 font-inter text-xl overflow-hidden"
-          style={{ color: '#202124' }}
-          maxLength={maxLength}
-        />
+        <div className="w-full">
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => {
+              onChange?.(e.target.value);
+              setTimeout(adjustTextareaHeight, 0); // Adjust height after state update
+            }}
+            placeholder={placeholder}
+            className="w-full min-h-32 lg:min-h-48 resize-none border-none outline-none leading-relaxed bg-transparent py-4 font-inter text-xl overflow-hidden"
+            style={{ color: '#202124' }}
+            maxLength={maxLength}
+          />
+          
+        </div>
       );
     }
 
@@ -123,7 +132,7 @@ export default function TranslationPanel({
             </div>
           </div>
         ) : (
-          <div>
+          <div className="whitespace-pre-wrap">
             {value || <span className="text-gray-400">translation</span>}
           </div>
         )}
@@ -146,6 +155,8 @@ export default function TranslationPanel({
           dropdownAlign={type === 'output' ? 'right' : 'left'}
           customForm={customForm}
           onCustomFormChange={onCustomFormChange}
+          isDetectingForm={isDetectingForm}
+          detectedForm={detectedForm}
         />
       </div>
 

@@ -79,7 +79,7 @@ UI_CONSTANTS {
 
 LANGUAGE_DISPLAY {
   DETECT_KEY: 'detect',
-  DETECT_LABEL: 'detect form',
+  DETECT_LABEL: 'detect form✨',
   CUSTOM_KEY: 'custom', 
   CUSTOM_LABEL: 'custom form',
   MAX_VISIBLE_LANGUAGES: 4

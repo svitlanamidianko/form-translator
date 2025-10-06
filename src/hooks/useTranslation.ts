@@ -3,8 +3,8 @@
 // It separates business logic from UI components
 
 import { useState, useEffect, useRef } from 'react';
-import { translateText, APIError, getFormTypes, getTranslationHistory } from '@/services/api';
-import type { TranslationRequest, TranslationHistoryItem, APIHistoryItem, CustomFormState, FormOption } from '@/types';
+import { translateText, APIError, getFormTypes, getTranslationHistory, detectForm } from '@/services/api';
+import type { TranslationRequest, TranslationHistoryItem, APIHistoryItem, CustomFormState, FormOption, DetectFormResponse } from '@/types';
 import { isDevelopment } from '@/config/environment';
 import { UI_CONSTANTS, ERROR_MESSAGES, LANGUAGE_DISPLAY } from '@/constants';
 
@@ -95,6 +95,11 @@ interface UseTranslationReturn {
   isTranslating: boolean;
   error: string | null;
   
+  // Form detection state
+  detectedForm: string | null;
+  isDetectingForm: boolean;
+  detectionReasoning: string | null;
+  
   // Custom form state
   sourceCustomForm: CustomFormState;
   targetCustomForm: CustomFormState;
@@ -127,6 +132,11 @@ export function useTranslation(): UseTranslationReturn {
   const [outputText, setOutputText] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Form detection state
+  const [detectedForm, setDetectedForm] = useState<string | null>(null);
+  const [isDetectingForm, setIsDetectingForm] = useState(false);
+  const [detectionReasoning, setDetectionReasoning] = useState<string | null>(null);
   
   // Custom form state - like having custom form objects in Python
   const [sourceCustomForm, setSourceCustomForm] = useState<CustomFormState>({
@@ -201,8 +211,8 @@ export function useTranslation(): UseTranslationReturn {
       clearTimeout(debounceTimeoutRef.current);
     }
 
-    // Don't translate if conditions aren't met or if "detect" is selected
-    if (!inputText.trim() || isLoadingForms || !sourceForm || !targetForm || sourceForm === LANGUAGE_DISPLAY.DETECT_KEY) {
+    // Don't translate if conditions aren't met
+    if (!inputText.trim() || isLoadingForms || !sourceForm || !targetForm) {
       setOutputText('');
       return;
     }
@@ -218,10 +228,17 @@ export function useTranslation(): UseTranslationReturn {
       return;
     }
 
-    // Debounced translation - wait for user to stop typing
-    debounceTimeoutRef.current = setTimeout(() => {
-      handleTranslate();
-    }, UI_CONSTANTS.DEBOUNCE_DELAY);
+    // If "detect" is selected, detect the form first
+    if (sourceForm === LANGUAGE_DISPLAY.DETECT_KEY) {
+      debounceTimeoutRef.current = setTimeout(() => {
+        handleFormDetection();
+      }, UI_CONSTANTS.DEBOUNCE_DELAY);
+    } else {
+      // Regular translation
+      debounceTimeoutRef.current = setTimeout(() => {
+        handleTranslate();
+      }, UI_CONSTANTS.DEBOUNCE_DELAY);
+    }
 
     // Cleanup function
     return () => {
@@ -277,14 +294,85 @@ export function useTranslation(): UseTranslationReturn {
 
   // Note: addToHistory function removed since we now fetch history from API
 
+  // Handle form detection - new function for detecting forms
+  const handleFormDetection = async () => {
+    if (!inputText.trim()) return;
+    
+    setIsDetectingForm(true);
+    setError(null);
+    
+    try {
+      if (isDevelopment()) {
+        console.log('🔍 Detecting form for text:', inputText);
+      }
+      
+      const response = await detectForm({ text: inputText });
+      
+      if (isDevelopment()) {
+        console.log('✅ Form detection response:', response);
+      }
+      
+      setDetectedForm(response.detectedForm);
+      setDetectionReasoning(response.reasoning);
+      
+      // If it's a custom form, set up the custom form state
+      if (response.isCustomForm) {
+        setSourceCustomForm({
+          isCustom: true,
+          customText: response.detectedForm
+        });
+        // Set the source form to the detected form (which will be shown as a new button)
+        setSourceForm(response.detectedForm);
+      } else {
+        // Check if the detected form exists in our available forms
+        if (formOptions[response.detectedForm]) {
+          // It's an existing form, set it as the source form
+          setSourceForm(response.detectedForm);
+        } else {
+          // Detected form doesn't exist in our forms, treat it as custom
+          setSourceCustomForm({
+            isCustom: true,
+            customText: response.detectedForm
+          });
+          setSourceForm(response.detectedForm);
+        }
+      }
+      
+      // Now that we have the detected form, proceed with translation
+      if (isDevelopment()) {
+        console.log('🔍 Proceeding with translation after form detection');
+      }
+      
+      // Use a small delay to ensure state updates have propagated
+      setTimeout(async () => {
+        await handleTranslate();
+      }, 100);
+      
+    } catch (err) {
+      console.error('Form detection error:', err);
+      
+      if (err instanceof APIError) {
+        setError(`Form detection failed: ${err.message}`);
+      } else {
+        setError('Failed to detect form. Please try again.');
+      }
+      
+      setDetectedForm(null);
+      setDetectionReasoning(null);
+    } finally {
+      setIsDetectingForm(false);
+      if (isDevelopment()) {
+        console.log('✅ Form detection completed, isDetectingForm set to false');
+      }
+    }
+  };
+
   // Handle translation - main business logic function
   const handleTranslate = async () => {
     if (!inputText.trim()) return;
     
-    // Don't translate if "detect" is selected
-    if (sourceForm === LANGUAGE_DISPLAY.DETECT_KEY) {
-      setOutputText('');
-      return;
+    if (isDevelopment()) {
+      console.log('🚀 Starting translation with:', { sourceForm, targetForm, inputText: inputText.substring(0, 50) + '...' });
     }
     
     setIsTranslating(true);
@@ -298,6 +386,10 @@ export function useTranslation(): UseTranslationReturn {
       const actualTargetForm = targetForm === LANGUAGE_DISPLAY.CUSTOM_KEY 
         ? targetCustomForm.customText 
         : targetForm;
+        
+      if (isDevelopment()) {
+        console.log('📝 Translation request:', { actualSourceForm, actualTargetForm });
+      }
         
       const request: TranslationRequest = {
         inputText: inputText,  // Changed from sourceText to match backend expectation
@@ -322,6 +414,10 @@ export function useTranslation(): UseTranslationReturn {
       }
       setOutputText(cleanText);
       
+      if (isDevelopment()) {
+        console.log('✅ Translation completed successfully');
+      }
+      
       // Note: We're now fetching history from the API instead of storing locally
       // The backend handles saving translations to the history
       
@@ -337,6 +433,9 @@ export function useTranslation(): UseTranslationReturn {
       setOutputText('');
     } finally {
       setIsTranslating(false);
+      if (isDevelopment()) {
+        console.log('🏁 Translation process finished, isTranslating set to false');
+      }
     }
   };
 
@@ -351,6 +450,11 @@ export function useTranslation(): UseTranslationReturn {
     outputText,
     isTranslating,
     error,
+    
+    // Form detection data
+    detectedForm,
+    isDetectingForm,
+    detectionReasoning,
     
     // Custom form data
     sourceCustomForm,

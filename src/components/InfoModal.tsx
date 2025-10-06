@@ -63,30 +63,36 @@ export default function InfoModal({ isOpen, onClose }: InfoModalProps) {
               welcome to Form Translator - a tool for translating between Ontological Forms.
               <br />
               <br />
-              #thesis: same Fuzzy and Ineffable is wrapped into different vocabulary that exists within the certain tribe's world. 
-              however, in essense, different tribes often point to the same Fuzzy and Ineffable, they just wrap it into different "vocabulary clothes." 
+              #thesis: we believe that the same Fuzzy and Ineffable is wrapped into different vocabularies - each belonging to certain tribe's world. 
+              however, in essense, different tribes often point to the same Fuzzy and Ineffable, they just dress it into different "ontological clothes." 
             </p>
             <br />
-            <p><a href="https://github.com/svitlanamidianko/form-translator">it is <span className="underline">open-source</span> if you want to co-create:)</a></p>
-            <br/>
             <p>
-              thank you for stopping by my philosophical art project 💛, 
+              that is, i can say one thing in infinite ways, each appealing to certain audiences.
+            </p>
+            <br />
+            <p>
+              thank you for directing your attention to my philosophical art project.<a href="https://github.com/svitlanamidianko/form-translator"> it is <span className="underline">open-source</span> if you want to co-create:)  </a>
+          
               <br />
-              svitlana
+              </p> <br /><p>
+              huggingly 💛,
+              <br/> 
+              svitlana.me:)
             </p>
           </div>
         </div>
 
         {/* Feedback Section */}
         <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-3">what do you see?</h3>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">feedback box: what do you see?</h3>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <textarea
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
-                placeholder="blurb coooby dooby doo | feedback, pokes, bugs, random existential contemplations are welcome | this will stay anonymous unless you choose leave yr email:)  | challenge me | what is the difference between Form and Frame?"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                placeholder="blurb coooby dooby doo | feedback, pokes, bugs, random existential contemplations are welcome | challenge me and help me grow <3 | this will stay anonymous unless you choose leave yr email | what is the difference between Form and Frame?"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none placeholder-gray-500"
                 rows={4}
               />
             </div>

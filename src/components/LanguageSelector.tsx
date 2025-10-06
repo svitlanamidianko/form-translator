@@ -52,7 +52,7 @@ export default function DropdownSelector({
     return (
       <div className="flex items-center space-x-2 text-sm text-gray-500">
         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-        <span>loading forms...</span>
+        <span>loading forms, its quick;)/span>
       </div>
     );
   }
@@ -232,7 +232,7 @@ export default function DropdownSelector({
                       placeholder="search forms"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500"
                     />
                   </div>
                   

@@ -4,7 +4,7 @@
 import { API_URL, isDevelopment } from '@/config/environment';
 
 // Import types from centralized location
-import type { TranslationRequest, TranslationResponse, FormsResponse, HistoryAPIResponse, StarRequest, StarResponse, StarCountResponse, InterestTrackingResponse } from '@/types';
+import type { TranslationRequest, TranslationResponse, FormsResponse, HistoryAPIResponse, StarRequest, StarResponse, StarCountResponse, InterestTrackingResponse, DetectFormRequest, DetectFormResponse } from '@/types';
 
 // API Error class - similar to creating custom exceptions in Python
 export class APIError extends Error {
@@ -70,7 +70,7 @@ class APIClient {
       }
       
       throw new APIError(
-        `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `network error: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }
@@ -196,6 +196,21 @@ export async function trackContentTypeInterest(contentType: 'images' | 'websites
     return response;
   } catch (error) {
     console.error(`Failed to track interest in ${contentType}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Detect the form of input text
+ * This will call POST /detect-form on your backend
+ */
+export async function detectForm(request: DetectFormRequest): Promise<DetectFormResponse> {
+  try {
+    // This will call POST /detect-form on your backend
+    const response = await apiClient.post<DetectFormResponse>('/detect-form', request);
+    return response;
+  } catch (error) {
+    console.error('Form detection failed:', error);
     throw error;
   }
 }

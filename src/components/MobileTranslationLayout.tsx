@@ -33,6 +33,11 @@ interface MobileTranslationLayoutProps {
   isTranslating: boolean;
   error: string | null;
   setError: (error: string | null) => void;
+  
+  // Form detection state
+  detectedForm?: string | null;
+  isDetectingForm?: boolean;
+  detectionReasoning?: string | null;
 }
 
 export default function MobileTranslationLayout({
@@ -53,6 +58,9 @@ export default function MobileTranslationLayout({
   isTranslating,
   error,
   setError,
+  detectedForm = null,
+  isDetectingForm = false,
+  detectionReasoning = null,
 }: MobileTranslationLayoutProps) {
   // Use our reusable clipboard hooks
   const { copyToClipboard: copyOutput, showCopiedMessage: showOutputCopied } = useClipboard();
@@ -86,6 +94,8 @@ export default function MobileTranslationLayout({
             isSourceSelector={true}
             customForm={sourceCustomForm}
             onCustomFormChange={setSourceCustomForm}
+            isDetectingForm={isDetectingForm}
+            detectedForm={detectedForm}
           />
         </div>
       
@@ -99,6 +109,7 @@ export default function MobileTranslationLayout({
             style={{ color: '#202124' }}
             maxLength={UI_CONSTANTS.MAX_TEXT_LENGTH}
           />
+          
         </div>
         
         {/* Bottom Row */}
@@ -169,7 +180,7 @@ export default function MobileTranslationLayout({
               </div>
             </div>
           ) : (
-            <div className="leading-relaxed min-h-[120px] flex items-start font-inter text-lg sm:text-xl break-words" style={{ color: '#202124' }}>
+            <div className="leading-relaxed min-h-[120px] flex items-start font-inter text-lg sm:text-xl break-words whitespace-pre-wrap" style={{ color: '#202124' }}>
               {outputText || <span className="text-gray-400">translation</span>}
             </div>
           )}

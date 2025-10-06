@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import EnvironmentIndicator from '@/components/EnvironmentIndicator';
 import Header from '@/components/Header';
@@ -15,6 +15,9 @@ import { UI_CONSTANTS } from '@/constants';
 export default function Home() {
   // State for info modal
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  
+  // State for reasoning box visibility
+  const [showReasoningBox, setShowReasoningBox] = useState(false);
 
   // Use our custom hook for all translation logic
   // This is like importing a service class in Python
@@ -28,6 +31,9 @@ export default function Home() {
     outputText,
     isTranslating,
     error,
+    detectedForm,
+    isDetectingForm,
+    detectionReasoning,
     sourceCustomForm,
     targetCustomForm,
     translationHistory,
@@ -42,6 +48,22 @@ export default function Home() {
     toggleHistory,
     refreshHistory,
   } = useTranslation();
+
+  // Handle reasoning box auto-hide timer
+  useEffect(() => {
+    if (detectedForm && !isDetectingForm && detectionReasoning) {
+      setShowReasoningBox(true);
+      
+      // Hide the reasoning box after 30 seconds
+      const timer = setTimeout(() => {
+        setShowReasoningBox(false);
+      }, 30000);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setShowReasoningBox(false);
+    }
+  }, [detectedForm, isDetectingForm, detectionReasoning]);
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
@@ -78,14 +100,32 @@ export default function Home() {
           isTranslating={isTranslating}
           error={error}
           setError={setError}
+          detectedForm={detectedForm}
+          isDetectingForm={isDetectingForm}
+          detectionReasoning={detectionReasoning}
           sourceCustomForm={sourceCustomForm}
           setSourceCustomForm={setSourceCustomForm}
           targetCustomForm={targetCustomForm}
           setTargetCustomForm={setTargetCustomForm}
         />
 
-        {/* Desktop Layout - Two Columns with Equal Heights */}
+        {/* Desktop Layout - Two Columns with Margin Note */}
         <div className="hidden lg:grid lg:grid-cols-2 gap-6 relative lg:items-stretch">
+          {/* Form Detection Reasoning - Absolute Positioned Margin Note */}
+          {showReasoningBox && (
+            <div className="absolute -left-80 top-0 w-72 z-10 transition-opacity duration-500 ease-in-out" style={{ left: '-19.5rem' }}>
+              <div className="p-4">
+                <div className="text-sm mb-2">
+                  <span className="font-medium text-gray-600 uppercase">Detected form: {detectedForm}</span>
+                </div>
+                {detectionReasoning && (
+                  <p className="text-xs text-gray-500 lowercase leading-relaxed text-justify">{detectionReasoning}</p>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Translation Panels - Original Layout */}
           {/* Input Panel - Desktop */}
           <TranslationPanel
             type="input"
@@ -100,6 +140,9 @@ export default function Home() {
             maxLength={UI_CONSTANTS.MAX_TEXT_LENGTH}
             customForm={sourceCustomForm}
             onCustomFormChange={setSourceCustomForm}
+            detectedForm={detectedForm}
+            isDetectingForm={isDetectingForm}
+            detectionReasoning={detectionReasoning}
           />
 
 

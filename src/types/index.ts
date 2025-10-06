@@ -129,3 +129,21 @@ export interface InterestTrackingResponse {
   message?: string;
   totalInterest?: number; // Optional: total count of interest for this content type
 }
+
+// Form Detection API Types
+export interface DetectFormRequest {
+  text: string;
+}
+
+export interface AlternativeForm {
+  form: string;
+  confidence: number;
+}
+
+export interface DetectFormResponse {
+  detectedForm: string;
+  reasoning: string;
+  isCustomForm: boolean;
+  confidence?: number;
+  alternativeForms: AlternativeForm[];
+}

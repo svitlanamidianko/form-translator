@@ -18,6 +18,8 @@ interface DropdownSelectorProps {
   dropdownAlign?: 'left' | 'right'; // Controls dropdown alignment
   customForm?: CustomFormState; // Custom form state
   onCustomFormChange?: (customForm: CustomFormState) => void; // Custom form change handler
+  isDetectingForm?: boolean; // Form detection loading state
+  detectedForm?: string | null; // Detected form to show as new button
 }
 
 export default function DropdownSelector({
@@ -33,6 +35,8 @@ export default function DropdownSelector({
   dropdownAlign = 'left',
   customForm = { isCustom: false, customText: '' },
   onCustomFormChange,
+  isDetectingForm = false,
+  detectedForm = null,
 }: DropdownSelectorProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -70,7 +74,7 @@ export default function DropdownSelector({
     return (
       <div className="flex items-center space-x-2 text-sm text-gray-500">
         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-        <span>loading forms...</span>
+        <span>loading forms, its quick;)</span>
       </div>
     );
   }
@@ -114,6 +118,19 @@ export default function DropdownSelector({
           ...allOptions.slice(0, LANGUAGE_DISPLAY.MAX_VISIBLE_LANGUAGES - 1)
         ];
       }
+    }
+    
+    // If we have a detected form and it's not already in the options, add it as a new button
+    if (detectedForm && isSourceSelector && !options[detectedForm]) {
+      const detectedOption: [string, string] = [detectedForm, detectedForm];
+      const defaultVisible = allOptions.slice(0, LANGUAGE_DISPLAY.MAX_VISIBLE_LANGUAGES - 1);
+      
+      // Insert detected form after detect button: [Detect, DetectedForm, ...others]
+      return [
+        [LANGUAGE_DISPLAY.DETECT_KEY, LANGUAGE_DISPLAY.DETECT_LABEL],
+        detectedOption,
+        ...defaultVisible.slice(1)
+      ];
     }
     
     const defaultVisible = allOptions.slice(0, LANGUAGE_DISPLAY.MAX_VISIBLE_LANGUAGES);
@@ -384,11 +401,21 @@ export default function DropdownSelector({
       <div className={`relative ${className}`} ref={dropdownRef}>
         <button
           onClick={handleDropdownToggle}
-          disabled={disabled || isLoading}
+          disabled={disabled || isLoading || (value === LANGUAGE_DISPLAY.DETECT_KEY && isDetectingForm)}
           className="px-3 py-2 text-sm font-medium transition-colors flex items-center space-x-2 whitespace-nowrap text-blue-600"
         >
           <span>
             {(() => {
+              // Show loading state for detect form
+              if (value === LANGUAGE_DISPLAY.DETECT_KEY && isDetectingForm) {
+                return (
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                    <span className="text-blue-600 font-medium">detecting form...</span>
+                  </div>
+                );
+              }
+              
               // Prefer visible label; fallback to full options map
               const opt = allOptions.find(([k]) => k === value);
               return opt ? getDisplayLabel(opt[0], opt[1]) : '';
@@ -408,7 +435,7 @@ export default function DropdownSelector({
                   placeholder="search forms"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500"
                 />
               </div>
               <div className="grid grid-cols-1 gap-1 auto-rows-fr">
@@ -435,14 +462,14 @@ export default function DropdownSelector({
                         return (
                           <div className="absolute left-0" style={{ width: '2px', top: topOffset, bottom: bottomOffset }}>
                             {/* Vertical line spanning across gaps */}
-                            <div className="absolute left-0 w-0.5 bg-gray-400 opacity-70" style={{ width: '2px', top: 0, bottom: 0 }}></div>
+                            <div className="absolute left-0 w-0.5 bg-gray-300 opacity-50" style={{ width: '2px', top: 0, bottom: 0 }}></div>
                             {/* Top horizontal cap only on first item */}
                             {isFirstInGroup && (
-                              <div className="absolute left-0 w-2 h-0.5 bg-gray-400 opacity-70" style={{ width: '8px', height: '2px', top: 0 }}></div>
+                              <div className="absolute left-0 w-2 h-0.5 bg-gray-300 opacity-50" style={{ width: '8px', height: '2px', top: 0 }}></div>
                             )}
                             {/* Bottom horizontal cap only on last item */}
                             {isLastInGroup && (
-                              <div className="absolute left-0 w-2 h-0.5 bg-gray-400 opacity-70" style={{ width: '8px', height: '2px', bottom: 0 }}></div>
+                              <div className="absolute left-0 w-2 h-0.5 bg-gray-300 opacity-50" style={{ width: '8px', height: '2px', bottom: 0 }}></div>
                             )}
                           </div>
                         );
@@ -478,12 +505,13 @@ export default function DropdownSelector({
           const isSelected = value === key;
           const displayLabel = getDisplayLabel(key, label);
           const isFirst = index === 0;
+          const isDetectForm = key === LANGUAGE_DISPLAY.DETECT_KEY;
           
           return (
             <button
               key={String(key)}
               onClick={() => handleLanguageSelect(String(key))}
-              disabled={disabled}
+              disabled={disabled || (isDetectForm && isDetectingForm)}
               className={`
                 ${isFirst ? 'pl-0 pr-4' : 'px-4'} py-2 text-sm font-medium transition-colors whitespace-nowrap
                 ${isSelected 
@@ -491,10 +519,18 @@ export default function DropdownSelector({
                   : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded'
                 }
                 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+                ${isDetectForm && isDetectingForm ? 'cursor-not-allowed' : ''}
               `}
             >
               <span className={isSelected ? 'border-b-2 border-blue-600 pb-1' : ''}>
-                {displayLabel}
+                {isDetectForm && isDetectingForm ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                    <span className="text-blue-600 font-medium">detecting form</span>
+                  </div>
+                ) : (
+                  displayLabel
+                )}
               </span>
             </button>
           );
@@ -548,7 +584,7 @@ export default function DropdownSelector({
                       placeholder="search forms"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500"
                     />
                   </div>
                   
@@ -606,14 +642,14 @@ export default function DropdownSelector({
                             return (
                               <div className="absolute left-0" style={{ width: '2px', top: topOffset, bottom: bottomOffset }}>
                                 {/* Vertical line spanning across gaps */}
-                                <div className="absolute left-0 w-0.5 bg-gray-400 opacity-70" style={{ width: '2px', top: 0, bottom: 0 }}></div>
+                                <div className="absolute left-0 w-0.5 bg-gray-300 opacity-50" style={{ width: '2px', top: 0, bottom: 0 }}></div>
                                 {/* Top horizontal cap only on first item */}
                                 {isFirstInGroup && (
-                                  <div className="absolute left-0 w-2 h-0.5 bg-gray-400 opacity-70" style={{ width: '8px', height: '2px', top: 0 }}></div>
+                                  <div className="absolute left-0 w-2 h-0.5 bg-gray-300 opacity-50" style={{ width: '8px', height: '2px', top: 0 }}></div>
                                 )}
                                 {/* Bottom horizontal cap only on last item */}
                                 {isLastInGroup && (
-                                  <div className="absolute left-0 w-2 h-0.5 bg-gray-400 opacity-70" style={{ width: '8px', height: '2px', bottom: 0 }}></div>
+                                  <div className="absolute left-0 w-2 h-0.5 bg-gray-300 opacity-50" style={{ width: '8px', height: '2px', bottom: 0 }}></div>
                                 )}
                               </div>
                             );
