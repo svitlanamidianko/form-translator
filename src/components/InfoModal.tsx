@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { submitFeedback } from '@/services/api';
 
 interface InfoModalProps {
@@ -33,10 +33,11 @@ export default function InfoModal({ isOpen, onClose }: InfoModalProps) {
       setTimeout(() => {
         setSubmitStatus('idle');
       }, 3000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to submit feedback:', error);
       setSubmitStatus('error');
-      setErrorMessage(error.response?.data?.error || 'Failed to submit feedback. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit feedback. Please try again.';
+      setErrorMessage(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -63,8 +64,8 @@ export default function InfoModal({ isOpen, onClose }: InfoModalProps) {
               welcome to Form Translator - a tool for translating between Ontological Forms.
               <br />
               <br />
-              #thesis: we believe that the same Fuzzy and Ineffable is wrapped into different vocabularies - each belonging to certain tribe's world. 
-              however, in essense, different tribes often point to the same Fuzzy and Ineffable, they just dress it into different "ontological clothes." 
+              #thesis: we believe that the same Fuzzy and Ineffable is wrapped into different vocabularies - each belonging to certain tribe&apos;s world. 
+              however, in essense, different tribes often point to the same Fuzzy and Ineffable, they just dress it into different &quot;ontological clothes.&quot; 
             </p>
             <br />
             <p>

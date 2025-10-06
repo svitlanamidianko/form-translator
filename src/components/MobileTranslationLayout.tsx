@@ -60,7 +60,6 @@ export default function MobileTranslationLayout({
   setError,
   detectedForm = null,
   isDetectingForm = false,
-  detectionReasoning = null,
 }: MobileTranslationLayoutProps) {
   // Use our reusable clipboard hooks
   const { copyToClipboard: copyOutput, showCopiedMessage: showOutputCopied } = useClipboard();

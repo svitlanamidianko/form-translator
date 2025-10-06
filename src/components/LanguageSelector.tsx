@@ -52,7 +52,7 @@ export default function DropdownSelector({
     return (
       <div className="flex items-center space-x-2 text-sm text-gray-500">
         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-        <span>loading forms, its quick;)/span>
+        <span>loading forms, its quick;)</span>
       </div>
     );
   }

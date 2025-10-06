@@ -46,7 +46,6 @@ export default function TranslationPanel({
   onCustomFormChange,
   detectedForm = null,
   isDetectingForm = false,
-  detectionReasoning = null,
 }: TranslationPanelProps) {
   const isInput = type === 'input';
 

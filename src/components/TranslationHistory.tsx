@@ -12,11 +12,9 @@ interface ExtendedHistoryComponentProps extends HistoryComponentProps {
 
 export default function TranslationHistory({ 
   isOpen, 
-  onToggle, 
   historyItems,
   formOptions = {},
-  isLoadingHistory = false,
-  onRefreshHistory
+  isLoadingHistory = false
 }: ExtendedHistoryComponentProps) {
   // Don't render anything if not open - similar to conditional rendering in Python templates
   if (!isOpen) {
