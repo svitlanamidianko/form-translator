@@ -490,7 +490,12 @@ export default function DropdownSelector({
                         className={`
                           text-left py-2 text-sm rounded-md hover:bg-gray-50 transition-colors
                           h-10 w-full overflow-hidden whitespace-nowrap text-ellipsis
-                          ${value === key ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}
+                          ${(() => {
+                            const isDetectForm = key === LANGUAGE_DISPLAY.DETECT_KEY;
+                            const isDetectedForm = detectedForm && key === detectedForm;
+                            const isSelected = isDetectedForm || (value === key && !(isDetectForm && detectedForm));
+                            return isSelected ? 'text-blue-600 bg-blue-50' : 'text-gray-700';
+                          })()}
                           ${isGrouped ? 'px-2 pl-4' : 'px-3'}
                         `}
                       >
@@ -513,10 +518,13 @@ export default function DropdownSelector({
       <div className="flex items-center space-x-1">
         {/* Visible language buttons */}
         {visibleForms.map(([key, label], index) => {
-          const isSelected = value === key;
+          // Smart selection logic: if we have a detected form and this is the detect button, don't highlight it
+          // Instead, highlight the detected form button
+          const isDetectForm = key === LANGUAGE_DISPLAY.DETECT_KEY;
+          const isDetectedForm = detectedForm && key === detectedForm;
+          const isSelected = isDetectedForm || (value === key && !(isDetectForm && detectedForm));
           const displayLabel = getDisplayLabel(key, label);
           const isFirst = index === 0;
-          const isDetectForm = key === LANGUAGE_DISPLAY.DETECT_KEY;
           
           return (
             <button
@@ -670,7 +678,12 @@ export default function DropdownSelector({
                             className={`
                               text-left py-2 text-sm rounded-md hover:bg-gray-50 transition-colors
                               h-10 w-full overflow-hidden whitespace-nowrap text-ellipsis
-                              ${value === key && key !== LANGUAGE_DISPLAY.CUSTOM_KEY ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}
+                              ${(() => {
+                                const isDetectForm = key === LANGUAGE_DISPLAY.DETECT_KEY;
+                                const isDetectedForm = detectedForm && key === detectedForm;
+                                const isSelected = isDetectedForm || (value === key && !(isDetectForm && detectedForm));
+                                return isSelected && key !== LANGUAGE_DISPLAY.CUSTOM_KEY ? 'text-blue-600 bg-blue-50' : 'text-gray-700';
+                              })()}
                               ${isGrouped ? 'px-2 pl-4' : 'px-3'}
                             `}
                           >

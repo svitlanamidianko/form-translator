@@ -65,7 +65,7 @@ export default function InfoModal({ isOpen, onClose }: InfoModalProps) {
               <br />
               <br />
               #thesis: we believe that the same Fuzzy and Ineffable is wrapped into different vocabularies - each belonging to certain tribe&apos;s world. 
-              however, in essense, different tribes often point to the same Fuzzy and Ineffable, they just dress it into different &quot;ontological clothes.&quot; 
+              however, in essence, different tribes often point to the same Fuzzy and Ineffable, they just dress it into different &quot;ontological clothes.&quot; 
             </p>
             <br />
             <p>

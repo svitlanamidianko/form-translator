@@ -300,6 +300,9 @@ export function useTranslation(): UseTranslationReturn {
     
     setIsDetectingForm(true);
     setError(null);
+    // Clear previous detection results immediately when starting new detection
+    setDetectedForm(null);
+    setDetectionReasoning(null);
     
     try {
       if (isDevelopment()) {
