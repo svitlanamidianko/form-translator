@@ -1,6 +1,8 @@
 // Bottom Actions Component - Action buttons at the bottom of the page
 // Extracted for better organization and reusability
 
+import HistorySortButtons from './HistorySortButtons';
+
 interface ActionButton {
   id: string;
   label: string;
@@ -11,9 +13,16 @@ interface ActionButton {
 interface BottomActionsProps {
   onHistoryClick?: () => void;
   isHistoryOpen?: boolean;
+  historySortMode?: 'most_starred' | 'recent_first';
+  onSortModeChange?: (sortMode: 'most_starred' | 'recent_first') => void;
 }
 
-export default function BottomActions({ onHistoryClick, isHistoryOpen = false }: BottomActionsProps) {
+export default function BottomActions({ 
+  onHistoryClick, 
+  isHistoryOpen = false, 
+  historySortMode = 'most_starred',
+  onSortModeChange 
+}: BottomActionsProps) {
   const actions: ActionButton[] = [
     {
       id: 'history',
@@ -28,28 +37,41 @@ export default function BottomActions({ onHistoryClick, isHistoryOpen = false }:
   ];
 
   return (
-    <div className="flex items-center justify-center space-x-16 mt-8 py-6 bg-white lg:bg-transparent lg:mt-12">
-      {actions.map((action) => {
-        const isActive = action.id === 'history' && isHistoryOpen;
-        return (
-          <button
-            key={action.id}
-            onClick={action.onClick}
-            className="flex flex-col items-center space-y-2 p-3 lg:p-4 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <div className={`w-12 h-12 rounded-full border flex items-center justify-center transition-colors shadow-sm ${
-              isActive 
-                ? 'border-blue-200 bg-blue-50' 
-                : 'border-gray-300 bg-white hover:border-gray-400'
-            }`}>
-              {action.icon}
-            </div>
-            <span className="text-sm font-medium text-gray-600 transition-colors">
-              {action.label}
-            </span>
-          </button>
-        );
-      })}
+    <div className="flex flex-col items-center mt-8 py-6 bg-white lg:bg-transparent lg:mt-12">
+      {/* History Button */}
+      <div className="flex items-center justify-center space-x-16">
+        {actions.map((action) => {
+          const isActive = action.id === 'history' && isHistoryOpen;
+          return (
+            <button
+              key={action.id}
+              onClick={action.onClick}
+              className="flex flex-col items-center space-y-2 p-3 lg:p-4 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <div className={`w-12 h-12 rounded-full border flex items-center justify-center transition-colors shadow-sm ${
+                isActive 
+                  ? 'border-blue-200 bg-blue-50' 
+                  : 'border-gray-300 bg-white hover:border-gray-400'
+              }`}>
+                {action.icon}
+              </div>
+              <span className="text-sm font-medium text-gray-600 transition-colors">
+                {action.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      
+      {/* Sort Buttons - appear right under history when active */}
+      {isHistoryOpen && onSortModeChange && (
+        <div className="mt-4">
+          <HistorySortButtons
+            currentSortMode={historySortMode}
+            onSortModeChange={onSortModeChange}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -120,14 +120,16 @@ export interface StarCountResponse {
 
 // Interest Tracking Types - for tracking user interest in future features
 export interface InterestTrackingRequest {
-  contentType: 'images' | 'websites';
+  what: 'images' | 'websites';
   timestamp: string;
 }
 
 export interface InterestTrackingResponse {
   success: boolean;
   message?: string;
-  totalInterest?: number; // Optional: total count of interest for this content type
+  recordId?: string; // The unique ID of the interest record
+  what?: string; // The content type that was tracked
+  timestamp?: string; // When the interest was recorded
 }
 
 // Form Detection API Types

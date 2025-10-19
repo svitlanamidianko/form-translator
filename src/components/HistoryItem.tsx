@@ -77,6 +77,7 @@ export default function HistoryItem({ item, formOptions }: HistoryItemProps) {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     
+    
     // Convert to different time units
     const seconds = Math.floor(diff / 1000);
     const minutes = Math.floor(seconds / 60);
@@ -87,6 +88,12 @@ export default function HistoryItem({ item, formOptions }: HistoryItemProps) {
     const years = Math.floor(days / 365);
     
     // Return appropriate verbal time format
+    // Handle negative differences (future dates) by showing absolute time
+    if (diff < 0) {
+      // Future date - show absolute date
+      return date.toLocaleDateString();
+    }
+    
     if (years > 0) {
       return `${years} year${years > 1 ? 's' : ''} ago`;
     } else if (months > 0) {
@@ -102,6 +109,7 @@ export default function HistoryItem({ item, formOptions }: HistoryItemProps) {
     } else if (seconds > 30) {
       return 'less than a minute ago';
     } else {
+      // Only show "just now" if it's actually very recent (less than 30 seconds)
       return 'just now';
     }
   };

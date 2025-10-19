@@ -2,6 +2,7 @@
 // This is like having a separate api.py file in Python to handle all HTTP requests
 
 import { API_URL, isDevelopment } from '@/config/environment';
+import { LANGUAGE_DISPLAY } from '@/constants';
 
 // Import types from centralized location
 import type { TranslationRequest, TranslationResponse, FormsResponse, HistoryAPIResponse, StarRequest, StarResponse, StarCountResponse, InterestTrackingResponse, DetectFormRequest, DetectFormResponse } from '@/types';
@@ -70,7 +71,7 @@ class APIClient {
       }
       
       throw new APIError(
-        `network error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `network error: ${error instanceof Error ? error.message : 'unknown error. if it bugs you too much, please msg me (svitkanaing@gmail.com) (or submit in upper right menu:)'}`
       );
     }
   }
@@ -98,6 +99,10 @@ export async function translateText(
   request: TranslationRequest
 ): Promise<TranslationResponse> {
   try {
+    // Absolute safety: never allow "detect" to be sent to backend
+    if (String(request.sourceForm).trim().toLowerCase() === LANGUAGE_DISPLAY.DETECT_KEY) {
+      throw new APIError('invalid source form: detect');
+    }
     // This will call POST /translate on your backend
     const response = await apiClient.post<TranslationResponse>('/translate', request);
     return response;
@@ -190,7 +195,7 @@ export async function trackContentTypeInterest(contentType: 'images' | 'websites
   try {
     // This will call POST /interest on your backend
     const response = await apiClient.post<InterestTrackingResponse>('/interest', {
-      contentType,
+      what: contentType,
       timestamp: new Date().toISOString(),
     });
     return response;

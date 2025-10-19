@@ -39,6 +39,7 @@ export default function Home() {
     translationHistory,
     isHistoryOpen,
     isLoadingHistory,
+    historySortMode,
     setSourceForm,
     setTargetForm,
     setInputText,
@@ -47,6 +48,7 @@ export default function Home() {
     setTargetCustomForm,
     toggleHistory,
     refreshHistory,
+    changeHistorySortMode,
   } = useTranslation();
 
   // Handle reasoning box auto-hide timer
@@ -164,7 +166,12 @@ export default function Home() {
         </div>
 
         {/* Bottom Actions */}
-        <BottomActions onHistoryClick={toggleHistory} isHistoryOpen={isHistoryOpen} />
+        <BottomActions 
+          onHistoryClick={toggleHistory} 
+          isHistoryOpen={isHistoryOpen}
+          historySortMode={historySortMode}
+          onSortModeChange={changeHistorySortMode}
+        />
       </div>
 
       {/* Translation History - appears below main content when opened */}

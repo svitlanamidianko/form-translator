@@ -19,13 +19,17 @@ function convertAPIHistoryToInternal(apiItem: APIHistoryItem): TranslationHistor
       return new Date();
     }
 
+
     try {
       // Try to parse as ISO string first (2025-09-15T14:08:10.221051 or 2025-09-15T14:08:10)
       if (dateString.includes('T') || (dateString.includes('-') && dateString.length > 10)) {
         const isoDate = new Date(dateString);
         if (!isNaN(isoDate.getTime())) {
-          console.log(`Parsed ISO date: ${dateString} -> ${isoDate}`);
           return isoDate;
+        } else {
+          if (isDevelopment()) {
+            console.warn(`❌ Failed to parse ISO date: ${dateString}`);
+          }
         }
       }
       
@@ -37,15 +41,29 @@ function convertAPIHistoryToInternal(apiItem: APIHistoryItem): TranslationHistor
         return parsedDate;
       }
       
-      // Handle MM/DD/YYYY format
+      // Handle MM/DD/YYYY format (with or without time)
       if (dateString.includes('/')) {
-        const parts = dateString.split('/').map(Number);
+        // Split by space first to separate date and time
+        const [datePart, timePart] = dateString.split(' ');
+        const parts = datePart.split('/').map(Number);
+        
         if (parts.length === 3) {
           const [month, day, year] = parts;
           // Ensure year is 4 digits
           const fullYear = year < 100 ? (year < 50 ? 2000 + year : 1900 + year) : year;
-          const parsedDate = new Date(fullYear, month - 1, day, 12, 0, 0);
-          console.log(`Parsed MM/DD/YYYY date: ${dateString} -> ${parsedDate}`);
+          
+          // Parse time if present
+          let hours = 12, minutes = 0, seconds = 0;
+          if (timePart) {
+            const timeParts = timePart.split(':').map(Number);
+            if (timeParts.length >= 2) {
+              hours = timeParts[0] || 12;
+              minutes = timeParts[1] || 0;
+              seconds = timeParts[2] || 0;
+            }
+          }
+          
+          const parsedDate = new Date(fullYear, month - 1, day, hours, minutes, seconds);
           return parsedDate;
         }
       }
@@ -61,10 +79,12 @@ function convertAPIHistoryToInternal(apiItem: APIHistoryItem): TranslationHistor
     } catch (error) {
       console.warn(`Failed to parse date: ${dateString}`, error);
       // Create a realistic fallback date (some time in the past)
+      // Use a more reasonable fallback - at least a few days ago to avoid "just now"
       const fallback = new Date();
-      const daysAgo = Math.floor(Math.random() * 30) + 1; // 1-30 days ago
+      const daysAgo = Math.floor(Math.random() * 30) + 7; // 7-37 days ago (minimum 1 week)
       fallback.setDate(fallback.getDate() - daysAgo);
-      fallback.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60), 0, 0);
+      // Set to a specific time to avoid random time issues
+      fallback.setHours(12, 0, 0, 0); // Set to noon
       console.log(`Using fallback date for ${dateString}: ${fallback}`);
       return fallback;
     }
@@ -108,6 +128,7 @@ interface UseTranslationReturn {
   translationHistory: TranslationHistoryItem[];
   isHistoryOpen: boolean;
   isLoadingHistory: boolean;
+  historySortMode: 'most_starred' | 'recent_first';
   
   // Actions
   setSourceForm: (form: string) => void;
@@ -116,9 +137,10 @@ interface UseTranslationReturn {
   setError: (error: string | null) => void;
   setSourceCustomForm: (customForm: CustomFormState) => void;
   setTargetCustomForm: (customForm: CustomFormState) => void;
-  handleTranslate: () => Promise<void>;
+  handleTranslate: (overrideSourceForm?: string) => Promise<void>;
   toggleHistory: () => void;
   refreshHistory: () => void;
+  changeHistorySortMode: (sortMode: 'most_starred' | 'recent_first') => void;
 }
 
 export function useTranslation(): UseTranslationReturn {
@@ -152,6 +174,9 @@ export function useTranslation(): UseTranslationReturn {
   const [translationHistory, setTranslationHistory] = useState<TranslationHistoryItem[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  
+  // History sorting state
+  const [historySortMode, setHistorySortMode] = useState<'most_starred' | 'recent_first'>('most_starred');
   
   // Ref for debouncing - like a class attribute in Python
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -261,9 +286,32 @@ export function useTranslation(): UseTranslationReturn {
       const response = await getTranslationHistory();
       
       // Convert API format to our internal format - like data transformation in Python
-      const convertedHistory = response.history.map(convertAPIHistoryToInternal);
+      const seenIds = new Set();
+      const convertedHistory = response.history.map((apiItem, index) => {
+        const converted = convertAPIHistoryToInternal(apiItem);
+        // Ensure unique IDs by appending index if needed
+        if (seenIds.has(converted.id)) {
+          converted.id = `${converted.id}-${index}`;
+        }
+        seenIds.add(converted.id);
+        return converted;
+      });
       
-      setTranslationHistory(convertedHistory);
+      
+      // Apply current sorting to the history items
+      const sortedHistory = sortHistoryItems(convertedHistory);
+      
+      // Debug: Check for duplicate IDs
+      if (isDevelopment()) {
+        const ids = sortedHistory.map(item => item.id);
+        const uniqueIds = new Set(ids);
+        if (ids.length !== uniqueIds.size) {
+          console.error('🚨 Duplicate IDs found in translationHistory:', ids.filter((id, index) => ids.indexOf(id) !== index));
+          console.log('All IDs:', ids);
+        }
+      }
+      
+      setTranslationHistory(sortedHistory);
       
       if (isDevelopment()) {
         console.log(`✅ Loaded ${convertedHistory.length} history items from API`);
@@ -292,6 +340,69 @@ export function useTranslation(): UseTranslationReturn {
     fetchTranslationHistory();
   };
 
+  // Sort history items with a specific sort mode
+  const sortHistoryItemsWithMode = (items: TranslationHistoryItem[], sortMode: 'most_starred' | 'recent_first'): TranslationHistoryItem[] => {
+    if (sortMode === 'recent_first') {
+      // Sort by timestamp (recent first)
+      const sorted = [...items].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      
+      // Debug logging to verify sorting
+      if (isDevelopment()) {
+        console.log('🔄 Sorting by recent first:', {
+          firstItem: { id: sorted[0]?.id, timestamp: sorted[0]?.timestamp },
+          lastItem: { id: sorted[sorted.length - 1]?.id, timestamp: sorted[sorted.length - 1]?.timestamp },
+          totalItems: sorted.length
+        });
+      }
+      
+      return sorted;
+    } else {
+      // Sort by star count (most starred first), then by timestamp as secondary sort
+      const sorted = [...items].sort((a, b) => {
+        const aStars = a.starCount || 0;
+        const bStars = b.starCount || 0;
+        
+        // Primary sort: by star count (descending)
+        if (aStars !== bStars) {
+          return bStars - aStars;
+        }
+        
+        // Secondary sort: by timestamp (newest first)
+        return b.timestamp.getTime() - a.timestamp.getTime();
+      });
+      
+      // Debug logging to verify sorting
+      if (isDevelopment()) {
+        console.log('🔄 Sorting by most starred first:', {
+          firstItem: { id: sorted[0]?.id, starCount: sorted[0]?.starCount, timestamp: sorted[0]?.timestamp },
+          lastItem: { id: sorted[sorted.length - 1]?.id, starCount: sorted[sorted.length - 1]?.starCount, timestamp: sorted[sorted.length - 1]?.timestamp },
+          totalItems: sorted.length
+        });
+      }
+      
+      return sorted;
+    }
+  };
+
+  // Sort history items based on current sort mode
+  const sortHistoryItems = (items: TranslationHistoryItem[]): TranslationHistoryItem[] => {
+    return sortHistoryItemsWithMode(items, historySortMode);
+  };
+
+  // Change sort mode and re-sort existing history
+  const changeHistorySortMode = (newSortMode: 'most_starred' | 'recent_first') => {
+    if (isDevelopment()) {
+      console.log(`🔄 Changing sort mode from ${historySortMode} to ${newSortMode}`);
+    }
+    
+    setHistorySortMode(newSortMode);
+    
+    // Re-sort existing history items with new sort mode
+    // We need to sort with the new mode, not the old one
+    const sortedHistory = sortHistoryItemsWithMode(translationHistory, newSortMode);
+    setTranslationHistory(sortedHistory);
+  };
+
   // Note: addToHistory function removed since we now fetch history from API
 
   // Handle form detection - new function for detecting forms
@@ -318,6 +429,9 @@ export function useTranslation(): UseTranslationReturn {
       setDetectedForm(response.detectedForm);
       setDetectionReasoning(response.reasoning);
       
+      // Immediately stop detecting spinner as soon as detection completes
+      setIsDetectingForm(false);
+      
       // Keep the source form as "detect" so the detected form shows in the button
       // Don't change the sourceForm - let the DropdownSelector handle showing the detected form
       
@@ -326,10 +440,8 @@ export function useTranslation(): UseTranslationReturn {
         console.log('🔍 Proceeding with translation after form detection');
       }
       
-      // Use a small delay to ensure state updates have propagated
-      setTimeout(async () => {
-        await handleTranslate();
-      }, 100);
+      // Call translate immediately with an explicit override to avoid race conditions
+      await handleTranslate(response.detectedForm);
       
     } catch (err) {
       console.error('Form detection error:', err);
@@ -343,6 +455,7 @@ export function useTranslation(): UseTranslationReturn {
       setDetectedForm(null);
       setDetectionReasoning(null);
     } finally {
+      // In case an early return path didn't clear it, ensure spinner is off
       setIsDetectingForm(false);
       if (isDevelopment()) {
         console.log('✅ Form detection completed, isDetectingForm set to false');
@@ -351,30 +464,68 @@ export function useTranslation(): UseTranslationReturn {
   };
 
   // Handle translation - main business logic function
-  const handleTranslate = async () => {
+  const handleTranslate = async (overrideSourceForm?: string) => {
     if (!inputText.trim()) return;
     
     if (isDevelopment()) {
-      console.log('🚀 Starting translation with:', { sourceForm, targetForm, inputText: inputText.substring(0, 50) + '...' });
+      console.log('🚀 Starting translation with:', { sourceForm, targetForm, overrideSourceForm, inputText: inputText.substring(0, 50) + '...' });
     }
     
     setIsTranslating(true);
     setError(null);
     
     try {
-      // Use custom form text if custom form is selected, otherwise use the form key
-      // If source form is "detect" and we have a detected form, use the detected form
-      const actualSourceForm = sourceForm === LANGUAGE_DISPLAY.CUSTOM_KEY 
-        ? sourceCustomForm.customText 
-        : sourceForm === LANGUAGE_DISPLAY.DETECT_KEY && detectedForm
-        ? detectedForm
-        : sourceForm;
+      // Resolve the effective source form to avoid ever sending "detect" to backend
+      let actualSourceForm: string = sourceForm;
+      
+      // Highest priority: explicit override from caller
+      if (overrideSourceForm && overrideSourceForm.trim()) {
+        actualSourceForm = overrideSourceForm.trim();
+      } else if (sourceForm === LANGUAGE_DISPLAY.CUSTOM_KEY) {
+        // Custom form: use the user's custom text
+        actualSourceForm = sourceCustomForm.customText;
+      } else if (sourceForm === LANGUAGE_DISPLAY.DETECT_KEY) {
+        // Detect mode: prefer already detected form if present
+        if (detectedForm && detectedForm.trim()) {
+          actualSourceForm = detectedForm.trim();
+        } else {
+          // Inline detection fallback to avoid race conditions
+          try {
+            if (isDevelopment()) {
+              console.log('🧠 Inline detection fallback triggered before translation');
+            }
+            const detection = await detectForm({ text: inputText });
+            if (detection && detection.detectedForm) {
+              actualSourceForm = detection.detectedForm;
+              // Update UI state with the inline detection result for consistency
+              setDetectedForm(detection.detectedForm);
+              setDetectionReasoning(detection.reasoning);
+            } else {
+              throw new Error('No detected form in detection response');
+            }
+          } catch (detectErr) {
+            console.error('Inline detection failed before translation:', detectErr);
+            // Safer to abort than to send "detect" downstream which pollutes history
+            setIsTranslating(false);
+            setError('Failed to detect form. Please try again.');
+            return;
+          }
+        }
+      }
       const actualTargetForm = targetForm === LANGUAGE_DISPLAY.CUSTOM_KEY 
         ? targetCustomForm.customText 
         : targetForm;
         
       if (isDevelopment()) {
         console.log('📝 Translation request:', { actualSourceForm, actualTargetForm });
+      }
+      
+      // Absolute safety: never send "detect" to backend
+      if (String(actualSourceForm).trim().toLowerCase() === LANGUAGE_DISPLAY.DETECT_KEY) {
+        console.error('Refusing to send "detect" as source form. Aborting translation.');
+        setIsTranslating(false);
+        setError('Form detection did not resolve. Please try again.');
+        return;
       }
         
       const request: TranslationRequest = {
@@ -450,6 +601,7 @@ export function useTranslation(): UseTranslationReturn {
     translationHistory,
     isHistoryOpen,
     isLoadingHistory,
+    historySortMode,
     
     // Actions
     setSourceForm,
@@ -461,5 +613,6 @@ export function useTranslation(): UseTranslationReturn {
     handleTranslate,
     toggleHistory,
     refreshHistory,
+    changeHistorySortMode,
   };
 }

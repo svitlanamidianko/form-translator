@@ -3,6 +3,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { LANGUAGE_DISPLAY } from '@/constants';
+import { useCyclingLoadingMessage } from '@/hooks/useCyclingLoadingMessage';
 
 interface DropdownSelectorProps {
   value: string;
@@ -31,6 +32,19 @@ export default function DropdownSelector({
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Cycling loading messages for engaging user experience
+  const loadingMessages = [
+    "loading forms, it's quick 🚀",
+    "unless Form Translator is sleepy😴",
+    "don't give up 🥹 loading forms should be done in seconds"
+  ];
+  
+  const currentLoadingMessage = useCyclingLoadingMessage({
+    isActive: isLoading,
+    messages: loadingMessages,
+    intervalMs: 2000 // 2 seconds per message
+  });
+
   // Function to extract just the form name (before the dash)
   const getDisplayLabel = (label: string) => {
     return label.split(' - ')[0];
@@ -52,7 +66,7 @@ export default function DropdownSelector({
     return (
       <div className="flex items-center space-x-2 text-sm text-gray-500">
         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-        <span>loading forms, its quick;)</span>
+        <span>{currentLoadingMessage}</span>
       </div>
     );
   }

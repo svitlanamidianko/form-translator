@@ -48,9 +48,9 @@ export default function TranslationHistory({
         ) : (
           // History items - similar to iterating over a list in Python
           <div className="space-y-4">
-            {historyItems.map((item) => (
+            {historyItems.map((item, index) => (
               <HistoryItem
-                key={item.id}
+                key={`${item.id}-${index}`}
                 item={item}
                 formOptions={formOptions}
               />

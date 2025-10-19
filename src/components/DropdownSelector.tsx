@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { LANGUAGE_DISPLAY } from '@/constants';
 import type { CustomFormState, FormOption } from '@/types';
+import { useCyclingLoadingMessage } from '@/hooks/useCyclingLoadingMessage';
 
 interface DropdownSelectorProps {
   value: string;
@@ -43,6 +44,20 @@ export default function DropdownSelector({
   const [isEditingCustom, setIsEditingCustom] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Cycling loading messages for engaging user experience
+  const loadingMessages = [
+    "loading forms, it's quick 🚀",
+    "unless Form Translator is sleepy😴",
+    "don't give up 🥹 loading forms should be done in seconds", 
+    "dooby kooby dooo mee loo.."
+  ];
+  
+  const currentLoadingMessage = useCyclingLoadingMessage({
+    isActive: isLoading,
+    messages: loadingMessages,
+    intervalMs: 2000 // 2 seconds per message
+  });
+
   // Function to extract just the form name (before the dash)
   const getDisplayLabel = (key: string, label: string) => {
     if (key === LANGUAGE_DISPLAY.DETECT_KEY || key === LANGUAGE_DISPLAY.CUSTOM_KEY) {
@@ -74,7 +89,7 @@ export default function DropdownSelector({
     return (
       <div className="flex items-center space-x-2 text-sm text-gray-500">
         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-        <span>loading forms, its quick;)</span>
+        <span>{currentLoadingMessage}</span>
       </div>
     );
   }
@@ -408,7 +423,7 @@ export default function DropdownSelector({
         <button
           onClick={handleDropdownToggle}
           disabled={disabled || isLoading || (value === LANGUAGE_DISPLAY.DETECT_KEY && isDetectingForm)}
-          className="px-3 py-2 text-sm font-medium transition-colors flex items-center space-x-2 whitespace-nowrap text-blue-600"
+          className="py-2 pl-0 pr-3 text-sm font-medium transition-colors flex items-center space-x-2 whitespace-nowrap text-blue-600"
         >
           <span>
             {(() => {
@@ -521,7 +536,8 @@ export default function DropdownSelector({
           // Smart selection logic: if we have a detected form and this is the detect button, don't highlight it
           // Instead, highlight the detected form button
           const isDetectForm = key === LANGUAGE_DISPLAY.DETECT_KEY;
-          const isDetectedForm = detectedForm && key === detectedForm;
+          // Only highlight the detected form when the user selected "detect"
+          const isDetectedForm = detectedForm && key === detectedForm && value === LANGUAGE_DISPLAY.DETECT_KEY;
           const isSelected = isDetectedForm || (value === key && !(isDetectForm && detectedForm));
           const displayLabel = getDisplayLabel(key, label);
           const isFirst = index === 0;
@@ -563,14 +579,14 @@ export default function DropdownSelector({
               disabled={disabled}
               className={`
                 ${dropdownAlign === 'right' ? 'px-2 pr-1' : 'px-4'} py-2 text-sm font-medium transition-colors flex items-center space-x-2 whitespace-nowrap
-                ${dropdownOptionsWithSpecial.some(([key]) => key === value)
+                ${dropdownOptionsWithSpecial.some(([key]) => key === value) && value !== LANGUAGE_DISPLAY.CUSTOM_KEY
                   ? 'text-blue-600'
                   : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded'
                 }
                 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
               `}
             >
-              {dropdownOptionsWithSpecial.find(([key]) => key === value)?.[1] ? (
+              {value !== LANGUAGE_DISPLAY.CUSTOM_KEY && dropdownOptionsWithSpecial.find(([key]) => key === value)?.[1] ? (
                 <span className={dropdownOptionsWithSpecial.some(([key]) => key === value) ? 'border-b-2 border-blue-600 pb-1' : ''}>
                   {(() => {
                     const found = dropdownOptionsWithSpecial.find(([key]) => key === value);
