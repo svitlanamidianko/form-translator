@@ -127,20 +127,6 @@ export async function getFormTypes(): Promise<FormsResponse> {
   }
 }
 
-/**
- * Get Ukrainian form types from the backend
- * This fetches the Ukrainian language forms from your API
- */
-export async function getUkrainianFormTypes(): Promise<FormsResponse> {
-  try {
-    // This will call GET /forms/ukrainian on your backend
-    const response = await apiClient.get<FormsResponse>('/forms/ukrainian');
-    return response;
-  } catch (error) {
-    console.error('Failed to fetch Ukrainian form types:', error);
-    throw error;
-  }
-}
 
 /**
  * Get translation history from the backend

@@ -3,7 +3,7 @@
 // It separates business logic from UI components
 
 import { useState, useEffect, useRef } from 'react';
-import { translateText, APIError, getFormTypes, getUkrainianFormTypes, getTranslationHistory, detectForm } from '@/services/api';
+import { translateText, APIError, getFormTypes, getTranslationHistory, detectForm } from '@/services/api';
 import type { TranslationRequest, TranslationHistoryItem, APIHistoryItem, CustomFormState, FormOption, DetectFormResponse } from '@/types';
 import { isDevelopment } from '@/config/environment';
 import { UI_CONSTANTS, ERROR_MESSAGES, LANGUAGE_DISPLAY } from '@/constants';
@@ -107,9 +107,6 @@ interface UseTranslationReturn {
   formOptionsWithCategories: FormOption[];
   isLoadingForms: boolean;
   
-  // Language state
-  currentLanguage: 'en' | 'ua';
-  
   // Translation state
   sourceForm: string;
   targetForm: string;
@@ -144,7 +141,6 @@ interface UseTranslationReturn {
   toggleHistory: () => void;
   refreshHistory: () => void;
   changeHistorySortMode: (sortMode: 'most_starred' | 'recent_first') => void;
-  switchLanguage: () => Promise<void>;
 }
 
 export function useTranslation(): UseTranslationReturn {
@@ -152,9 +148,6 @@ export function useTranslation(): UseTranslationReturn {
   const [formOptions, setFormOptions] = useState<Record<string, string>>({});
   const [formOptionsWithCategories, setFormOptionsWithCategories] = useState<FormOption[]>([]);
   const [isLoadingForms, setIsLoadingForms] = useState(true);
-  
-  // Language state
-  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ua'>('en');
   const [sourceForm, setSourceForm] = useState('');
   const [targetForm, setTargetForm] = useState('');
   const [inputText, setInputText] = useState('');
@@ -193,12 +186,10 @@ export function useTranslation(): UseTranslationReturn {
     const fetchForms = async () => {
       try {
         if (isDevelopment()) {
-          console.log(`🔄 Fetching ${currentLanguage === 'en' ? 'English' : 'Ukrainian'} forms from API...`);
+          console.log('🔄 Fetching available forms from API...');
         }
         
-        const response = currentLanguage === 'en' 
-          ? await getFormTypes() 
-          : await getUkrainianFormTypes();
+        const response = await getFormTypes();
         
         // Transform the new API format to the expected format
         // Convert { key: { category, description } } to { key: description }
@@ -225,7 +216,7 @@ export function useTranslation(): UseTranslationReturn {
         }
         
         if (isDevelopment()) {
-          console.log(`✅ Loaded ${response.count} ${currentLanguage === 'en' ? 'English' : 'Ukrainian'} form types:`, response.forms);
+          console.log(`✅ Loaded ${response.count} form types:`, response.forms);
         }
       } catch (err) {
         console.error('Failed to fetch forms:', err);
@@ -236,7 +227,7 @@ export function useTranslation(): UseTranslationReturn {
     };
 
     fetchForms();
-  }, [currentLanguage]);
+  }, []);
 
   // Auto-translate with debouncing - like a watcher in Python
   useEffect(() => {
@@ -585,37 +576,12 @@ export function useTranslation(): UseTranslationReturn {
     }
   };
 
-  // Language switching function
-  const switchLanguage = async () => {
-    try {
-      setIsLoadingForms(true);
-      setError(null);
-      
-      // Clear current translation state
-      setInputText('');
-      setOutputText('');
-      setDetectedForm(null);
-      setDetectionReasoning(null);
-      
-      // Toggle language
-      const newLanguage = currentLanguage === 'en' ? 'ua' : 'en';
-      setCurrentLanguage(newLanguage);
-      
-      if (isDevelopment()) {
-        console.log(`🔄 Switching to ${newLanguage === 'en' ? 'English' : 'Ukrainian'} language`);
-      }
-    } catch (error) {
-      console.error('Failed to switch language:', error);
-      setError('Failed to switch language. Please try again.');
-    }
-  };
 
   return {
     // Data
     formOptions,
     formOptionsWithCategories,
     isLoadingForms,
-    currentLanguage,
     sourceForm,
     targetForm,
     inputText,
@@ -649,6 +615,5 @@ export function useTranslation(): UseTranslationReturn {
     toggleHistory,
     refreshHistory,
     changeHistorySortMode,
-    switchLanguage,
   };
 }

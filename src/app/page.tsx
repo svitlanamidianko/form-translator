@@ -24,7 +24,6 @@ export default function Home() {
     formOptions,
     formOptionsWithCategories,
     isLoadingForms,
-    currentLanguage,
     sourceForm,
     targetForm,
     inputText,
@@ -49,7 +48,6 @@ export default function Home() {
     toggleHistory,
     refreshHistory,
     changeHistorySortMode,
-    switchLanguage,
   } = useTranslation();
 
   // Handle reasoning box auto-hide timer
@@ -78,8 +76,6 @@ export default function Home() {
         onInfoClick={() => setIsInfoModalOpen(!isInfoModalOpen)} 
         onCloseInfoModal={() => setIsInfoModalOpen(false)}
         isInfoModalOpen={isInfoModalOpen}
-        onLanguageSwitch={switchLanguage}
-        currentLanguage={currentLanguage}
       />
       
       {/* Content Type Tabs */}
