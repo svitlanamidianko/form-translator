@@ -1,3 +1,4 @@
+"use client";
 // Header Component - Clean separation of the app header
 // This is like creating a separate header.py module in Python
 
@@ -8,9 +9,11 @@ interface HeaderProps {
   onInfoClick?: () => void;
   onCloseInfoModal?: () => void;
   isInfoModalOpen?: boolean;
+  onLanguageSwitch?: () => void;
+  currentLanguage?: 'en' | 'ua';
 }
 
-export default function Header({ title = "Translator", onInfoClick, onCloseInfoModal, isInfoModalOpen = false }: HeaderProps) {
+export default function Header({ title = "Translator", onInfoClick, onCloseInfoModal, isInfoModalOpen = false, onLanguageSwitch, currentLanguage = 'en' }: HeaderProps) {
   return (
     <header className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40">
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -29,6 +32,13 @@ export default function Header({ title = "Translator", onInfoClick, onCloseInfoM
         </div>
         
         <div className="flex items-center space-x-2">
+          <button 
+            onClick={onLanguageSwitch}
+            className="flex items-center p-2 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+            aria-label={currentLanguage === 'en' ? "Switch to Ukrainian" : "Switch to English"}
+          >
+            <span className="text-lg">{currentLanguage === 'en' ? '🇺🇦' : '🇺🇸'}</span>
+          </button>
           <div className="relative">
             <button 
               onClick={onInfoClick}

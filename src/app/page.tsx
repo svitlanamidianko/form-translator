@@ -9,7 +9,6 @@ import TranslationPanel from '@/components/TranslationPanel';
 import MobileTranslationLayout from '@/components/MobileTranslationLayout';
 import BottomActions from '@/components/BottomActions';
 import TranslationHistory from '@/components/TranslationHistory';
-import InfoModal from '@/components/InfoModal';
 import { UI_CONSTANTS } from '@/constants';
 
 export default function Home() {
@@ -25,6 +24,7 @@ export default function Home() {
     formOptions,
     formOptionsWithCategories,
     isLoadingForms,
+    currentLanguage,
     sourceForm,
     targetForm,
     inputText,
@@ -49,6 +49,7 @@ export default function Home() {
     toggleHistory,
     refreshHistory,
     changeHistorySortMode,
+    switchLanguage,
   } = useTranslation();
 
   // Handle reasoning box auto-hide timer
@@ -77,6 +78,8 @@ export default function Home() {
         onInfoClick={() => setIsInfoModalOpen(!isInfoModalOpen)} 
         onCloseInfoModal={() => setIsInfoModalOpen(false)}
         isInfoModalOpen={isInfoModalOpen}
+        onLanguageSwitch={switchLanguage}
+        currentLanguage={currentLanguage}
       />
       
       {/* Content Type Tabs */}
