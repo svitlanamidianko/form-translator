@@ -9,6 +9,7 @@ import TranslationPanel from '@/components/TranslationPanel';
 import MobileTranslationLayout from '@/components/MobileTranslationLayout';
 import BottomActions from '@/components/BottomActions';
 import TranslationHistory from '@/components/TranslationHistory';
+import ImageTranslationPanel from '@/components/ImageTranslationPanel';
 import { UI_CONSTANTS } from '@/constants';
 
 export default function Home() {
@@ -18,11 +19,27 @@ export default function Home() {
   // State for reasoning box visibility
   const [showReasoningBox, setShowReasoningBox] = useState(false);
 
+  // Which tab is showing: 'text' (normal translator) or 'images' (photo translator)
+  const [activeTab, setActiveTab] = useState<'text' | 'images'>('text');
+  // Once the photo tab was opened we keep it mounted (just hidden), so a photo/result
+  // isn't lost when someone peeks back at the text tab
+  const [hasOpenedImages, setHasOpenedImages] = useState(false);
+
+  const handleTabChange = (tabId: string) => {
+    if (tabId === 'images') {
+      setHasOpenedImages(true);
+      setActiveTab('images');
+    } else if (tabId === 'text') {
+      setActiveTab('text');
+    }
+  };
+
   // Use our custom hook for all translation logic
   // This is like importing a service class in Python
   const {
     formOptions,
     formOptionsWithCategories,
+    formGroups,
     isLoadingForms,
     sourceForm,
     targetForm,
@@ -80,88 +97,107 @@ export default function Home() {
       
       {/* Content Type Tabs */}
       <div className="pt-20">
-        <ContentTabs />
+        <ContentTabs activeTab={activeTab} onTabChange={handleTabChange} />
       </div>
       
       {/* Main Translation Interface - Google Translate Style */}
       <div className="w-full max-w-full lg:max-w-6xl lg:mx-auto lg:px-6 lg:py-6 relative">
         
-        {/* Mobile Layout - Extracted to separate component */}
-        <MobileTranslationLayout
-          sourceForm={sourceForm}
-          setSourceForm={setSourceForm}
-          inputText={inputText}
-          setInputText={setInputText}
-          targetForm={targetForm}
-          setTargetForm={setTargetForm}
-          outputText={outputText}
-          formOptions={formOptions}
-          formOptionsWithCategories={formOptionsWithCategories}
-          isLoadingForms={isLoadingForms}
-          isTranslating={isTranslating}
-          error={error}
-          setError={setError}
-          detectedForm={detectedForm}
-          isDetectingForm={isDetectingForm}
-          detectionReasoning={detectionReasoning}
-          sourceCustomForm={sourceCustomForm}
-          setSourceCustomForm={setSourceCustomForm}
-          targetCustomForm={targetCustomForm}
-          setTargetCustomForm={setTargetCustomForm}
-        />
+        {/* Photo translator ("images" tab) */}
+        {hasOpenedImages && (
+          <div className={activeTab === 'images' ? '' : 'hidden'}>
+            <ImageTranslationPanel
+              isActive={activeTab === 'images'}
+              formOptions={formOptions}
+              formOptionsWithCategories={formOptionsWithCategories}
+              formGroups={formGroups}
+              isLoadingForms={isLoadingForms}
+            />
+          </div>
+        )}
 
-        {/* Desktop Layout - Two Columns with Margin Note */}
-        <div className="hidden lg:grid lg:grid-cols-2 gap-6 relative lg:items-stretch">
-          {/* Form Detection Reasoning - Absolute Positioned Margin Note */}
-          {showReasoningBox && (
-            <div className="absolute -left-80 top-0 w-72 z-10 transition-opacity duration-500 ease-in-out" style={{ left: '-19.5rem' }}>
-              <div className="p-4">
-                <div className="text-sm mb-2">
-                  <span className="font-medium text-gray-600 uppercase">Detected form: {detectedForm}</span>
-                </div>
-                {detectionReasoning && (
-                  <p className="text-xs text-gray-500 lowercase leading-relaxed text-justify">{detectionReasoning}</p>
-                )}
-              </div>
-            </div>
-          )}
-          
-          {/* Translation Panels - Original Layout */}
-          {/* Input Panel - Desktop */}
-          <TranslationPanel
-            type="input"
-            value={inputText}
-            onChange={setInputText}
-            selectedForm={sourceForm}
-            onFormChange={setSourceForm}
+        {/* Text translator ("text" tab) */}
+        <div className={activeTab === 'text' ? '' : 'hidden'}>
+          {/* Mobile Layout - Extracted to separate component */}
+          <MobileTranslationLayout
+            sourceForm={sourceForm}
+            setSourceForm={setSourceForm}
+            inputText={inputText}
+            setInputText={setInputText}
+            targetForm={targetForm}
+            setTargetForm={setTargetForm}
+            outputText={outputText}
             formOptions={formOptions}
             formOptionsWithCategories={formOptionsWithCategories}
-            isLoadingForms={isLoadingForms}
-            placeholder="enter text to translate..."
-            maxLength={UI_CONSTANTS.MAX_TEXT_LENGTH}
-            customForm={sourceCustomForm}
-            onCustomFormChange={setSourceCustomForm}
-            detectedForm={detectedForm}
-            isDetectingForm={isDetectingForm}
-            detectionReasoning={detectionReasoning}
-          />
-
-
-          {/* Output Panel - Desktop */}
-          <TranslationPanel
-            type="output"
-            value={outputText}
-            selectedForm={targetForm}
-            onFormChange={setTargetForm}
-            formOptions={formOptions}
-            formOptionsWithCategories={formOptionsWithCategories}
+            formGroups={formGroups}
             isLoadingForms={isLoadingForms}
             isTranslating={isTranslating}
             error={error}
-            onClearError={() => setError(null)}
-            customForm={targetCustomForm}
-            onCustomFormChange={setTargetCustomForm}
+            setError={setError}
+            detectedForm={detectedForm}
+            isDetectingForm={isDetectingForm}
+            detectionReasoning={detectionReasoning}
+            sourceCustomForm={sourceCustomForm}
+            setSourceCustomForm={setSourceCustomForm}
+            targetCustomForm={targetCustomForm}
+            setTargetCustomForm={setTargetCustomForm}
           />
+
+          {/* Desktop Layout - Two Columns with Margin Note */}
+          <div className="hidden lg:grid lg:grid-cols-2 gap-6 relative lg:items-stretch">
+            {/* Form Detection Reasoning - Absolute Positioned Margin Note */}
+            {showReasoningBox && (
+              <div className="absolute -left-80 top-0 w-72 z-10 transition-opacity duration-500 ease-in-out" style={{ left: '-19.5rem' }}>
+                <div className="p-4">
+                  <div className="text-sm mb-2">
+                    <span className="font-medium text-gray-600 uppercase">Detected form: {detectedForm}</span>
+                  </div>
+                  {detectionReasoning && (
+                    <p className="text-xs text-gray-500 lowercase leading-relaxed text-justify">{detectionReasoning}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          
+            {/* Translation Panels - Original Layout */}
+            {/* Input Panel - Desktop */}
+            <TranslationPanel
+              type="input"
+              value={inputText}
+              onChange={setInputText}
+              selectedForm={sourceForm}
+              onFormChange={setSourceForm}
+              formOptions={formOptions}
+              formOptionsWithCategories={formOptionsWithCategories}
+              formGroups={formGroups}
+              isLoadingForms={isLoadingForms}
+              placeholder="enter text to translate..."
+              maxLength={UI_CONSTANTS.MAX_TEXT_LENGTH}
+              customForm={sourceCustomForm}
+              onCustomFormChange={setSourceCustomForm}
+              detectedForm={detectedForm}
+              isDetectingForm={isDetectingForm}
+              detectionReasoning={detectionReasoning}
+            />
+
+
+            {/* Output Panel - Desktop */}
+            <TranslationPanel
+              type="output"
+              value={outputText}
+              selectedForm={targetForm}
+              onFormChange={setTargetForm}
+              formOptions={formOptions}
+              formOptionsWithCategories={formOptionsWithCategories}
+              formGroups={formGroups}
+              isLoadingForms={isLoadingForms}
+              isTranslating={isTranslating}
+              error={error}
+              onClearError={() => setError(null)}
+              customForm={targetCustomForm}
+              onCustomFormChange={setTargetCustomForm}
+            />
+          </div>
         </div>
 
         {/* Bottom Actions */}

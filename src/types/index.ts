@@ -15,14 +15,18 @@ export interface TranslationResponse {
 }
 
 // New form structure from your updated API
+// (named FormData like before, but note: it is NOT the browser's built-in FormData class)
 export interface FormData {
-  category: string | null;
-  description: string;
+  category: string | null; // semantic group from column E of the sheet (e.g. "religion"), or null
+  description: string; // "<form name> - <ukrainian name>"
+  userSubmitted?: boolean; // true when a visitor added this form (custom form)
+  order?: number; // 0-based position of the row in the sheet - this is the order we show forms in
 }
 
 export interface FormsResponse {
   count: number;
   forms: Record<string, FormData>;
+  groups?: string[]; // group names in the order they first appear in the sheet
   timestamp: string;
   note?: string;
   source?: string;
@@ -50,7 +54,17 @@ export interface SelectOption {
 export interface FormOption {
   key: string;
   label: string;
-  category: string | null;
+  category: string | null; // semantic group (null = no group)
+  userSubmitted: boolean; // added by a visitor
+  order: number; // position in the sheet (lower = shown first)
+}
+
+// One titled block of forms inside the dropdown (e.g. "religion" with its forms)
+// This is like a small dataclass FormSection(id, title, forms) in Python
+export interface FormSection {
+  id: string;
+  title: string;
+  forms: FormOption[];
 }
 
 // Custom form types for user-defined forms
@@ -148,4 +162,20 @@ export interface DetectFormResponse {
   isCustomForm: boolean;
   confidence?: number;
   alternativeForms: AlternativeForm[];
+}
+
+// Photo translation API Types - POST /translate-image (multipart/form-data)
+export interface ImageTranslationRequest {
+  image: Blob; // the (already downscaled) jpeg we upload
+  fileName?: string;
+  targetForm: string;
+  sourceForm?: string; // optional, just informational for the backend
+}
+
+export interface ImageTranslationResponse {
+  imageBase64: string; // the generated picture as base64 (no "data:" prefix)
+  mimeType: string; // e.g. "image/jpeg"
+  caption: string; // 1-2 sentences about the photo written in the target form (may be "")
+  targetForm: string;
+  timestamp: string;
 }

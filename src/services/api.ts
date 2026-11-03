@@ -2,21 +2,68 @@
 // This is like having a separate api.py file in Python to handle all HTTP requests
 
 import { API_URL, isDevelopment } from '@/config/environment';
-import { LANGUAGE_DISPLAY } from '@/constants';
+import { LANGUAGE_DISPLAY, CONTACT_NOTE } from '@/constants';
 
 // Import types from centralized location
-import type { TranslationRequest, TranslationResponse, FormsResponse, HistoryAPIResponse, StarRequest, StarResponse, StarCountResponse, InterestTrackingResponse, DetectFormRequest, DetectFormResponse } from '@/types';
+import type { TranslationRequest, TranslationResponse, FormsResponse, HistoryAPIResponse, StarRequest, StarResponse, StarCountResponse, InterestTrackingResponse, DetectFormRequest, DetectFormResponse, ImageTranslationRequest, ImageTranslationResponse } from '@/types';
 
 // API Error class - similar to creating custom exceptions in Python
 export class APIError extends Error {
   constructor(
     message: string,
     public status?: number,
-    public response?: unknown
+    public response?: unknown,
+    public retryAfterSeconds?: number // only set for 429 "slow down" errors
   ) {
     super(message);
     this.name = 'APIError';
   }
+}
+
+// Pull the human readable reason out of an error body like {"error": "..."}
+// This is like body.get("error") or body.get("message") in Python
+function getBackendErrorMessage(body: unknown): string | null {
+  if (body && typeof body === 'object') {
+    const { error, message } = body as { error?: unknown; message?: unknown };
+    if (typeof error === 'string' && error.trim()) return error.trim();
+    if (typeof message === 'string' && message.trim()) return message.trim();
+  }
+  return null;
+}
+
+// How many seconds the backend wants us to wait (from the JSON body or the Retry-After header)
+function getRetryAfterSeconds(body: unknown, response: Response): number | undefined {
+  const fromBody = body && typeof body === 'object'
+    ? Number((body as { retryAfterSeconds?: unknown }).retryAfterSeconds)
+    : NaN;
+  if (Number.isFinite(fromBody) && fromBody > 0) return Math.ceil(fromBody);
+
+  const fromHeader = Number(response.headers.get('Retry-After'));
+  if (Number.isFinite(fromHeader) && fromHeader > 0) return Math.ceil(fromHeader);
+
+  return undefined;
+}
+
+// Get the real reason out of any error (APIError, normal Error, or something weird)
+export function getErrorReason(err: unknown): string {
+  if (err instanceof Error && err.message.trim()) return err.message.trim();
+  if (typeof err === 'string') return err.trim();
+  return '';
+}
+
+// Build a friendly error text that still shows the REAL reason
+// This is like f"{what}: {reason}. {hint} {CONTACT_NOTE}" in Python
+export function friendlyErrorMessage(what: string, err: unknown, hint = 'please try again.'): string {
+  const reason = getErrorReason(err).replace(/[.\s]+$/, ''); // drop a trailing "." so we don't get ".."
+  if (!reason) return `${what}. unknown error. ${hint} ${CONTACT_NOTE}`;
+
+  // The backend often already says what failed ("Translation failed: ...") - then we don't say it twice
+  const alreadySaysWhat = /^[^:]*\bfail[^:]*:/i.test(reason);
+  // ...and sometimes it already says "Please try again" too
+  const alreadyHasHint = reason.toLowerCase().includes(hint.replace(/[.\s]+$/, '').toLowerCase());
+
+  const message = alreadySaysWhat ? `${reason}.` : `${what}: ${reason}.`;
+  return alreadyHasHint ? `${message} ${CONTACT_NOTE}` : `${message} ${hint} ${CONTACT_NOTE}`;
 }
 
 // Simplified API client - focused on what we actually need
@@ -29,32 +76,53 @@ class APIClient {
   }
 
   // Generic request method - simplified and focused
+  // data can be a normal object (sent as JSON) or a FormData (sent as multipart/form-data, for files)
   private async request<T>(
     endpoint: string,
     method: 'GET' | 'POST' = 'GET',
     data?: unknown
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+    // FormData = file upload. This is like requests.post(url, files=...) instead of json=... in Python
+    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+
     if (isDevelopment()) {
       console.log(`🌐 API Request: ${method} ${url}`);
-      if (data) console.log('📤 Request data:', data);
+      if (data) console.log('📤 Request data:', isFormData ? '(multipart form data)' : data);
     }
 
     try {
       const response = await fetch(url, {
         method,
-        headers: {
+        // For FormData we must NOT set Content-Type ourselves -
+        // the browser adds "multipart/form-data; boundary=..." automatically
+        headers: isFormData ? undefined : {
           'Content-Type': 'application/json',
         },
-        body: data ? JSON.stringify(data) : undefined,
+        body: isFormData ? (data as FormData) : data ? JSON.stringify(data) : undefined,
       });
 
       if (!response.ok) {
+        // Read the body as text first, then try to parse it as JSON
+        // (some errors, like a proxy timeout page, are not JSON at all)
+        const rawBody = await response.text().catch(() => '');
+        let body: unknown = null;
+        try {
+          body = rawBody ? JSON.parse(rawBody) : null;
+        } catch {
+          body = null;
+        }
+
+        // Prefer the backend's {"error": "..."} message - it has the real reason.
+        // Otherwise fall back to "HTTP 500 Internal Server Error" (statusText is often empty on HTTP/2)
+        const backendMessage = getBackendErrorMessage(body);
+        const fallbackMessage = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`;
+
         throw new APIError(
-          `API request failed: ${response.statusText}`,
+          backendMessage || fallbackMessage,
           response.status,
-          await response.json().catch(() => null)
+          body ?? rawBody,
+          getRetryAfterSeconds(body, response)
         );
       }
 
@@ -71,7 +139,7 @@ class APIClient {
       }
       
       throw new APIError(
-        `network error: ${error instanceof Error ? error.message : 'unknown error. if it bugs you too much, please msg me (svitkanaing@gmail.com) (or submit in upper right menu:)'}`
+        `network error: ${error instanceof Error ? error.message : `unknown error. ${CONTACT_NOTE}`}`
       );
     }
   }
@@ -81,6 +149,7 @@ class APIClient {
     return this.request<T>(endpoint, 'GET');
   }
 
+  // data: a plain object (sent as JSON) or a FormData (sent as a file upload)
   async post<T>(endpoint: string, data: unknown): Promise<T> {
     return this.request<T>(endpoint, 'POST', data);
   }
@@ -217,6 +286,28 @@ export async function detectForm(request: DetectFormRequest): Promise<DetectForm
     return response;
   } catch (error) {
     console.error('Form detection failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Translate a photo into a target form (the "images" tab)
+ * This will call POST /translate-image on your backend with multipart/form-data
+ * This is like requests.post(url, files={"image": ...}, data={"targetForm": ...}) in Python
+ */
+export async function translateImage(request: ImageTranslationRequest): Promise<ImageTranslationResponse> {
+  try {
+    const formData = new FormData();
+    formData.append('image', request.image, request.fileName || 'photo.jpg');
+    formData.append('targetForm', request.targetForm);
+    if (request.sourceForm) {
+      formData.append('sourceForm', request.sourceForm);
+    }
+
+    const response = await apiClient.post<ImageTranslationResponse>('/translate-image', formData);
+    return response;
+  } catch (error) {
+    console.error('Photo translation failed:', error);
     throw error;
   }
 }

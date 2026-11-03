@@ -3,10 +3,11 @@
 // It separates business logic from UI components
 
 import { useState, useEffect, useRef } from 'react';
-import { translateText, APIError, getFormTypes, getTranslationHistory, detectForm } from '@/services/api';
+import { translateText, APIError, getFormTypes, getTranslationHistory, detectForm, friendlyErrorMessage } from '@/services/api';
 import type { TranslationRequest, TranslationHistoryItem, APIHistoryItem, CustomFormState, FormOption, DetectFormResponse } from '@/types';
 import { isDevelopment } from '@/config/environment';
 import { UI_CONSTANTS, ERROR_MESSAGES, LANGUAGE_DISPLAY } from '@/constants';
+import { formOptionsFromResponse } from '@/utils/formSections';
 
 // Utility function to convert API history items to our internal format
 // This is like having a data transformer function in Python
@@ -104,7 +105,8 @@ function convertAPIHistoryToInternal(apiItem: APIHistoryItem): TranslationHistor
 interface UseTranslationReturn {
   // Form data
   formOptions: Record<string, string>;
-  formOptionsWithCategories: FormOption[];
+  formOptionsWithCategories: FormOption[]; // sorted by sheet order
+  formGroups: string[]; // semantic group names, in sheet order
   isLoadingForms: boolean;
   
   // Translation state
@@ -147,6 +149,7 @@ export function useTranslation(): UseTranslationReturn {
   // State management - like instance variables in a Python class
   const [formOptions, setFormOptions] = useState<Record<string, string>>({});
   const [formOptionsWithCategories, setFormOptionsWithCategories] = useState<FormOption[]>([]);
+  const [formGroups, setFormGroups] = useState<string[]>([]);
   const [isLoadingForms, setIsLoadingForms] = useState(true);
   const [sourceForm, setSourceForm] = useState('');
   const [targetForm, setTargetForm] = useState('');
@@ -192,27 +195,22 @@ export function useTranslation(): UseTranslationReturn {
         const response = await getFormTypes();
         
         // Transform the new API format to the expected format
-        // Convert { key: { category, description } } to { key: description }
+        // formsWithCategories = list sorted by sheet order (with group + "added by visitor" info)
+        // transformedForms = { key: description } (used by history and the dropdowns)
+        const { options: formsWithCategories, groups } = formOptionsFromResponse(response);
         const transformedForms: Record<string, string> = {};
-        const formsWithCategories: FormOption[] = [];
-        
-        Object.entries(response.forms).forEach(([key, formData]) => {
-          transformedForms[key] = formData.description;
-          formsWithCategories.push({
-            key,
-            label: formData.description,
-            category: formData.category
-          });
+        formsWithCategories.forEach((form) => {
+          transformedForms[form.key] = form.label;
         });
         
         setFormOptions(transformedForms);
         setFormOptionsWithCategories(formsWithCategories);
+        setFormGroups(groups);
         
-        // Set default values - "detect" for source, first form for target
-        const formKeys = Object.keys(response.forms);
-        if (formKeys.length >= 1) {
+        // Set default values - "detect" for source, first form (by sheet order) for target
+        if (formsWithCategories.length >= 1) {
           setSourceForm(LANGUAGE_DISPLAY.DETECT_KEY); // Default to "detect" for source
-          setTargetForm(formKeys[0]); // First available form for target
+          setTargetForm(formsWithCategories[0].key); // First form in the sheet for target
         }
         
         if (isDevelopment()) {
@@ -220,7 +218,8 @@ export function useTranslation(): UseTranslationReturn {
         }
       } catch (err) {
         console.error('Failed to fetch forms:', err);
-        setError(ERROR_MESSAGES.FORMS_LOAD_FAILED);
+        // Show the real reason (e.g. "HTTP 502") instead of a generic message
+        setError(err instanceof Error ? friendlyErrorMessage('failed to load available forms', err, 'please refresh the page.') : ERROR_MESSAGES.FORMS_LOAD_FAILED);
       } finally {
         setIsLoadingForms(false);
       }
@@ -228,6 +227,12 @@ export function useTranslation(): UseTranslationReturn {
 
     fetchForms();
   }, []);
+
+  // Only watch the custom form text while "custom form" is actually selected.
+  // (Otherwise typing a new custom form name would re-run the current translation
+  // and add duplicate rows to the public history.)
+  const activeSourceCustomText = sourceForm === LANGUAGE_DISPLAY.CUSTOM_KEY ? sourceCustomForm.customText : '';
+  const activeTargetCustomText = targetForm === LANGUAGE_DISPLAY.CUSTOM_KEY ? targetCustomForm.customText : '';
 
   // Auto-translate with debouncing - like a watcher in Python
   useEffect(() => {
@@ -243,12 +248,12 @@ export function useTranslation(): UseTranslationReturn {
     }
     
     // Don't translate if custom form is selected but no custom text is provided
-    if (sourceForm === LANGUAGE_DISPLAY.CUSTOM_KEY && !sourceCustomForm.customText.trim()) {
+    if (sourceForm === LANGUAGE_DISPLAY.CUSTOM_KEY && !activeSourceCustomText.trim()) {
       setOutputText('');
       return;
     }
     
-    if (targetForm === LANGUAGE_DISPLAY.CUSTOM_KEY && !targetCustomForm.customText.trim()) {
+    if (targetForm === LANGUAGE_DISPLAY.CUSTOM_KEY && !activeTargetCustomText.trim()) {
       setOutputText('');
       return;
     }
@@ -271,7 +276,7 @@ export function useTranslation(): UseTranslationReturn {
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [inputText, sourceForm, targetForm, isLoadingForms, sourceCustomForm.customText, targetCustomForm.customText]);
+  }, [inputText, sourceForm, targetForm, isLoadingForms, activeSourceCustomText, activeTargetCustomText]);
 
   // Fetch history from API - like calling an API endpoint in Python
   const fetchTranslationHistory = async () => {
@@ -447,9 +452,9 @@ export function useTranslation(): UseTranslationReturn {
       console.error('Form detection error:', err);
       
       if (err instanceof APIError) {
-        setError(`Form detection failed: ${err.message}`);
+        setError(friendlyErrorMessage('form detection failed', err));
       } else {
-        setError('Failed to detect form. Please try again.');
+        setError(friendlyErrorMessage('failed to detect form', err));
       }
       
       setDetectedForm(null);
@@ -507,7 +512,7 @@ export function useTranslation(): UseTranslationReturn {
             console.error('Inline detection failed before translation:', detectErr);
             // Safer to abort than to send "detect" downstream which pollutes history
             setIsTranslating(false);
-            setError('Failed to detect form. Please try again.');
+            setError(friendlyErrorMessage('failed to detect form', detectErr));
             return;
           }
         }
@@ -562,7 +567,8 @@ export function useTranslation(): UseTranslationReturn {
       console.error('Translation error:', err);
       
       if (err instanceof APIError) {
-        setError(`${ERROR_MESSAGES.TRANSLATION_FAILED}: ${err.message}`);
+        // e.g. "translation failed: <the backend's real reason>. please try again. if it bugs you..."
+        setError(friendlyErrorMessage('translation failed', err));
       } else {
         setError(ERROR_MESSAGES.GENERIC_ERROR);
       }
@@ -581,6 +587,7 @@ export function useTranslation(): UseTranslationReturn {
     // Data
     formOptions,
     formOptionsWithCategories,
+    formGroups,
     isLoadingForms,
     sourceForm,
     targetForm,

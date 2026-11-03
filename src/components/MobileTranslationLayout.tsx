@@ -21,6 +21,7 @@ interface MobileTranslationLayoutProps {
   // Form options
   formOptions: Record<string, string>;
   formOptionsWithCategories?: FormOption[];
+  formGroups?: string[]; // semantic group names (sheet order) for the dropdown sections
   isLoadingForms: boolean;
   
   // Custom form props
@@ -50,6 +51,7 @@ export default function MobileTranslationLayout({
   outputText,
   formOptions,
   formOptionsWithCategories,
+  formGroups = [],
   isLoadingForms,
   sourceCustomForm,
   setSourceCustomForm,
@@ -87,6 +89,7 @@ export default function MobileTranslationLayout({
             onChange={setSourceForm}
             options={formOptions}
             optionsWithCategories={formOptionsWithCategories}
+            groups={formGroups}
             isLoading={isLoadingForms}
             disabled={isLoadingForms}
             mobileOnly={true}
@@ -108,7 +111,8 @@ export default function MobileTranslationLayout({
             style={{ color: '#202124' }}
             maxLength={UI_CONSTANTS.MAX_TEXT_LENGTH}
           />
-          
+          {/* Small heads-up so nobody is surprised to see their text in the public history */}
+          <p className="text-xs text-gray-400 lowercase">psst, translations appear in the public history 👀</p>
         </div>
         
         {/* Bottom Row */}
@@ -146,6 +150,7 @@ export default function MobileTranslationLayout({
             onChange={setTargetForm}
             options={formOptions}
             optionsWithCategories={formOptionsWithCategories}
+            groups={formGroups}
             isLoading={isLoadingForms}
             disabled={isLoadingForms}
             mobileOnly={true}

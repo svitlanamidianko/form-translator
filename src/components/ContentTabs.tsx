@@ -1,5 +1,6 @@
 // Content Tabs Component - Interactive tabs with interest tracking
-// Text tab works normally, Images/Websites track user interest via API
+// Text tab works normally, Images opens the photo translator (and still tracks interest),
+// Websites only tracks user interest via API (maybe one day🌱)
 
 import { useState } from 'react';
 import { trackContentTypeInterest } from '@/services/api';
@@ -51,14 +52,28 @@ export default function ContentTabs({ activeTab = 'text', onTabChange }: Content
   const handleTabClick = async (tabId: string) => {
     // For text tab, handle normally
     if (tabId === 'text') {
+      setFeedbackMessage('');
       if (onTabChange) {
         onTabChange(tabId);
       }
       return;
     }
 
-    // For images and websites, track interest
-    if (tabId === 'images' || tabId === 'websites') {
+    // Images are real now 📷 - switch to the photo translator right away,
+    // and still track the click in the background (so we keep counting curious people)
+    if (tabId === 'images') {
+      setFeedbackMessage('');
+      if (onTabChange) {
+        onTabChange(tabId);
+      }
+      trackContentTypeInterest('images')
+        .then(() => console.log('📊 Tracked interest in images'))
+        .catch((error) => console.error('Failed to track interest in images:', error));
+      return;
+    }
+
+    // For websites, track interest
+    if (tabId === 'websites') {
       try {
         await trackContentTypeInterest(tabId);
         console.log(`📊 Tracked interest in ${tabId}`);

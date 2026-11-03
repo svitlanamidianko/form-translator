@@ -15,6 +15,7 @@ interface TranslationPanelProps {
   onFormChange: (form: string) => void;
   formOptions: Record<string, string>;
   formOptionsWithCategories?: FormOption[];
+  formGroups?: string[]; // semantic group names (sheet order) for the dropdown sections
   isLoadingForms: boolean;
   isTranslating?: boolean;
   error?: string | null;
@@ -36,6 +37,7 @@ export default function TranslationPanel({
   onFormChange,
   formOptions,
   formOptionsWithCategories,
+  formGroups = [],
   isLoadingForms,
   isTranslating = false,
   error = null,
@@ -99,7 +101,8 @@ export default function TranslationPanel({
             style={{ color: '#202124' }}
             maxLength={maxLength}
           />
-          
+          {/* Small heads-up so nobody is surprised to see their text in the public history */}
+          <p className="text-xs text-gray-400 lowercase">psst, translations appear in the public history 👀</p>
         </div>
       );
     }
@@ -143,15 +146,18 @@ export default function TranslationPanel({
     <div className={panelClassName}>
       {/* Header with language selector */}
       <div className={`${headerClassName} flex items-center space-x-2`}>
+        {/* flex-1 = selector spans the whole header, so a right-aligned dropdown lines up with the panel edge */}
         <DropdownSelector
           value={selectedForm}
           onChange={onFormChange}
           options={formOptions}
           optionsWithCategories={formOptionsWithCategories}
+          groups={formGroups}
           isLoading={isLoadingForms}
           disabled={isLoadingForms}
           isSourceSelector={type === 'input'}
           dropdownAlign={type === 'output' ? 'right' : 'left'}
+          className="flex-1 min-w-0"
           customForm={customForm}
           onCustomFormChange={onCustomFormChange}
           isDetectingForm={isDetectingForm}

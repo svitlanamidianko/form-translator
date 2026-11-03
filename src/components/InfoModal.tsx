@@ -68,7 +68,7 @@ export default function InfoModal({ isOpen, onClose }: InfoModalProps) {
               however, in essence, different tribes often point to the same Fuzzy and Ineffable, they just dress it into different &quot;ontological clothes.&quot; 
    
 
-              that is, i can communitcate and point to one thing in infinite ways, each appealing to certain audiences.
+              that is, i can communicate and point to one thing in infinite ways, each appealing to certain audiences.
             </p>
             <br />
             <p>
