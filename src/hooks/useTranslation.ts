@@ -121,6 +121,7 @@ interface UseTranslationReturn {
   detectedForm: string | null;
   isDetectingForm: boolean;
   detectionReasoning: string | null;
+  suggestedForms: string[]; // target forms that pair well with the current text
   
   // Custom form state
   sourceCustomForm: CustomFormState;
@@ -162,6 +163,8 @@ export function useTranslation(): UseTranslationReturn {
   const [detectedForm, setDetectedForm] = useState<string | null>(null);
   const [isDetectingForm, setIsDetectingForm] = useState(false);
   const [detectionReasoning, setDetectionReasoning] = useState<string | null>(null);
+  const [suggestedForms, setSuggestedForms] = useState<string[]>([]);
+  const suggestionsTextRef = useRef(''); // the text the current suggestions belong to
   
   // Custom form state - like having custom form objects in Python
   const [sourceCustomForm, setSourceCustomForm] = useState<CustomFormState>({
@@ -244,6 +247,10 @@ export function useTranslation(): UseTranslationReturn {
     // Don't translate if conditions aren't met
     if (!inputText.trim() || isLoadingForms || !sourceForm || !targetForm) {
       setOutputText('');
+      if (!inputText.trim()) {
+        setSuggestedForms([]);
+        suggestionsTextRef.current = '';
+      }
       return;
     }
     
@@ -433,6 +440,14 @@ export function useTranslation(): UseTranslationReturn {
       
       setDetectedForm(response.detectedForm);
       setDetectionReasoning(response.reasoning);
+
+      // Detection also runs again when the target changes, so for the same text we keep the
+      // suggestions we have - otherwise clicking a suggestion would reshuffle the buttons
+      const detectedText = inputText.trim();
+      if (detectedText !== suggestionsTextRef.current) {
+        suggestionsTextRef.current = detectedText;
+        setSuggestedForms(response.suggestedForms ?? []);
+      }
       
       // Immediately stop detecting spinner as soon as detection completes
       setIsDetectingForm(false);
@@ -600,6 +615,7 @@ export function useTranslation(): UseTranslationReturn {
     detectedForm,
     isDetectingForm,
     detectionReasoning,
+    suggestedForms,
     
     // Custom form data
     sourceCustomForm,

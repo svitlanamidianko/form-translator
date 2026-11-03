@@ -27,6 +27,7 @@ interface TranslationPanelProps {
   detectedForm?: string | null;
   isDetectingForm?: boolean;
   detectionReasoning?: string | null;
+  suggestedForms?: string[]; // output side: forms that pair well with the text
 }
 
 export default function TranslationPanel({
@@ -48,6 +49,7 @@ export default function TranslationPanel({
   onCustomFormChange,
   detectedForm = null,
   isDetectingForm = false,
+  suggestedForms = [],
 }: TranslationPanelProps) {
   const isInput = type === 'input';
 
@@ -162,6 +164,7 @@ export default function TranslationPanel({
           onCustomFormChange={onCustomFormChange}
           isDetectingForm={isDetectingForm}
           detectedForm={detectedForm}
+          suggestedForms={suggestedForms}
         />
       </div>
 

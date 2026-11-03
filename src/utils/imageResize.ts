@@ -108,14 +108,3 @@ export function base64ToBlob(base64: string, mimeType: string): Blob {
   }
   return new Blob([bytes], { type: mimeType || 'image/jpeg' });
 }
-
-// "Gen Z poetry!" -> "gen-z-poetry" (for the download file name)
-export function slugify(text: string): string {
-  const slug = text
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40);
-  return slug || 'photo';
-}

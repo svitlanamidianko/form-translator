@@ -28,6 +28,7 @@ export const LANGUAGE_DISPLAY = {
 
 // Section titles inside the forms dropdown (lowercase, like the rest of the site)
 export const FORM_SECTIONS = {
+  SUGGESTED_TITLE: 'suggested for your text ✨', // target side: forms that pair well with the text
   UNGROUPED_TITLE: 'more forms', // curated forms that don't have a group yet
   ALL_FORMS_TITLE: 'all forms', // used instead of "more forms" when there are no groups at all
   VISITOR_TITLE: 'added by visitors', // forms visitors created via "custom form" (without a group)

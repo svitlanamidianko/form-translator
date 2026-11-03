@@ -8,7 +8,7 @@ import DropdownSelector from './DropdownSelector';
 import { translateImage, APIError, friendlyErrorMessage } from '@/services/api';
 import { useCyclingLoadingMessage } from '@/hooks/useCyclingLoadingMessage';
 import { LANGUAGE_DISPLAY, IMAGE_UPLOAD } from '@/constants';
-import { prepareImageForUpload, validateImageFile, base64ToBlob, slugify, ImagePrepError } from '@/utils/imageResize';
+import { prepareImageForUpload, validateImageFile, base64ToBlob, ImagePrepError } from '@/utils/imageResize';
 import type { CustomFormState, FormOption, ImageTranslationResponse } from '@/types';
 
 interface ImageTranslationPanelProps {
@@ -30,7 +30,7 @@ interface SelectedPhoto {
 // The picture we got back from the backend
 interface PhotoResult {
   data: ImageTranslationResponse;
-  url: string; // a temporary "blob:" url for showing + downloading it
+  url: string; // a temporary "blob:" url for showing it
 }
 
 // Playful messages while we wait (generation takes 10-40 seconds)
@@ -448,21 +448,6 @@ export default function ImageTranslationPanel({
                     unoptimized
                     className="w-full h-auto max-h-[36rem] object-contain"
                   />
-                </div>
-                {result.data.caption && (
-                  <figcaption className="mt-3 italic text-gray-600 leading-relaxed break-words">
-                    {result.data.caption}
-                  </figcaption>
-                )}
-                <div className="flex items-center justify-between pt-3 gap-3">
-                  <span className="text-xs text-gray-400 truncate">{resultTargetName}</span>
-                  <a
-                    href={result.url}
-                    download={`form-translator-${slugify(resultTargetName)}.jpg`}
-                    className="text-sm font-medium text-blue-600 hover:text-blue-800 whitespace-nowrap"
-                  >
-                    download ↓
-                  </a>
                 </div>
               </figure>
             ) : (

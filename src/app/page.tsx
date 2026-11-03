@@ -50,6 +50,7 @@ export default function Home() {
     detectedForm,
     isDetectingForm,
     detectionReasoning,
+    suggestedForms,
     sourceCustomForm,
     targetCustomForm,
     translationHistory,
@@ -141,6 +142,7 @@ export default function Home() {
             setSourceCustomForm={setSourceCustomForm}
             targetCustomForm={targetCustomForm}
             setTargetCustomForm={setTargetCustomForm}
+            suggestedForms={suggestedForms}
           />
 
           {/* Desktop Layout - Two Columns with Margin Note */}
@@ -196,6 +198,7 @@ export default function Home() {
               onClearError={() => setError(null)}
               customForm={targetCustomForm}
               onCustomFormChange={setTargetCustomForm}
+              suggestedForms={suggestedForms}
             />
           </div>
         </div>

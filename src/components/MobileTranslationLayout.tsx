@@ -39,6 +39,7 @@ interface MobileTranslationLayoutProps {
   detectedForm?: string | null;
   isDetectingForm?: boolean;
   detectionReasoning?: string | null;
+  suggestedForms?: string[]; // target forms that pair well with the text
 }
 
 export default function MobileTranslationLayout({
@@ -62,6 +63,7 @@ export default function MobileTranslationLayout({
   setError,
   detectedForm = null,
   isDetectingForm = false,
+  suggestedForms = [],
 }: MobileTranslationLayoutProps) {
   // Use our reusable clipboard hooks
   const { copyToClipboard: copyOutput, showCopiedMessage: showOutputCopied } = useClipboard();
@@ -157,6 +159,7 @@ export default function MobileTranslationLayout({
             isSourceSelector={false}
             customForm={targetCustomForm}
             onCustomFormChange={setTargetCustomForm}
+            suggestedForms={suggestedForms}
           />
         </div>
         

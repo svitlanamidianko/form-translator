@@ -2,7 +2,7 @@
 // This is like creating a reusable widget class in Python that shows multiple options
 
 import { useState, useRef, useEffect } from 'react';
-import { LANGUAGE_DISPLAY } from '@/constants';
+import { LANGUAGE_DISPLAY, FORM_SECTIONS } from '@/constants';
 import type { CustomFormState, FormOption, FormSection } from '@/types';
 import { useCyclingLoadingMessage } from '@/hooks/useCyclingLoadingMessage';
 import { buildFormSections, normalizeFormName } from '@/utils/formSections';
@@ -23,6 +23,7 @@ interface DropdownSelectorProps {
   onCustomFormChange?: (customForm: CustomFormState) => void; // Custom form change handler
   isDetectingForm?: boolean; // Form detection loading state
   detectedForm?: string | null; // Detected form to show as new button
+  suggestedForms?: string[]; // Target side: forms that pair well with the text (from /detect-form)
 }
 
 // A visible quick-pick button: the key we select + the text we show
@@ -57,6 +58,7 @@ export default function DropdownSelector({
   onCustomFormChange,
   isDetectingForm = false,
   detectedForm = null,
+  suggestedForms = [],
 }: DropdownSelectorProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -121,12 +123,20 @@ export default function DropdownSelector({
     return key === value;
   };
 
-  // Visible quick-pick buttons (desktop): the first forms from the sheet,
-  // plus the currently selected one if it isn't among them (it goes first).
+  // Suggested forms that really are in the list (sheet spelling), only on the target side
+  const suggestedOptions: FormOption[] = isSourceSelector
+    ? []
+    : suggestedForms
+        .map((name) => findForm(name))
+        .filter((form): form is FormOption => !!form)
+        .filter((form, index, list) => list.indexOf(form) === index);
+
+  // Visible quick-pick buttons (desktop): the suggested forms for this text, or else the first
+  // forms from the sheet, plus the currently selected one if it isn't among them (it goes first).
   // The source side always starts with "detect form ✨". "detect" never appears on the target side.
   const getQuickPicks = (): QuickPick[] => {
     const quickPickCount = LANGUAGE_DISPLAY.MAX_VISIBLE_LANGUAGES - 1; // 3 forms
-    let picks: QuickPick[] = orderedForms
+    let picks: QuickPick[] = (suggestedOptions.length > 0 ? suggestedOptions : orderedForms)
       .slice(0, quickPickCount)
       .map((form) => ({ key: form.key, label: form.key }));
 
@@ -159,8 +169,14 @@ export default function DropdownSelector({
 
   const quickPicks = getQuickPicks();
 
-  // Sections for the dropdown: one per group, then "more forms", then "added by visitors"
-  const sections: FormSection[] = buildFormSections(orderedForms, groups, searchQuery);
+  // Sections for the dropdown: suggestions for this text first (not while searching),
+  // then one per group, then "more forms", then "added by visitors"
+  const sections: FormSection[] = [
+    ...(suggestedOptions.length > 0 && !searchQuery.trim()
+      ? [{ id: 'suggested', title: FORM_SECTIONS.SUGGESTED_TITLE, forms: suggestedOptions }]
+      : []),
+    ...buildFormSections(orderedForms, groups, searchQuery),
+  ];
 
   // Mobile has no quick-pick buttons, so "detect" lives at the top of the mobile list (only once)
   const showDetectInList =

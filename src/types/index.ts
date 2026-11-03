@@ -162,6 +162,7 @@ export interface DetectFormResponse {
   isCustomForm: boolean;
   confidence?: number;
   alternativeForms: AlternativeForm[];
+  suggestedForms?: string[]; // forms from the sheet that pair well as targets (never the detected one)
 }
 
 // Photo translation API Types - POST /translate-image (multipart/form-data)
@@ -175,7 +176,6 @@ export interface ImageTranslationRequest {
 export interface ImageTranslationResponse {
   imageBase64: string; // the generated picture as base64 (no "data:" prefix)
   mimeType: string; // e.g. "image/jpeg"
-  caption: string; // 1-2 sentences about the photo written in the target form (may be "")
   targetForm: string;
   timestamp: string;
 }
